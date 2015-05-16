@@ -86,59 +86,61 @@ func Parse(s *[]string) Expr {
 }
 
 func Eval(e Expr, env Environment) Expr {
-	if unwrapNumber(symbol_(e)) == 1 {
+	if bool(symbol_(e).(Boolean)) {
 		return env.find(unwrapSymbol(e))[unwrapSymbol(e)]
 	} else if !bool(list_(e).(Boolean)) {
 		return e
-	} else if el, s0 := e.(ExprList), unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
-		return el[1]
-	} else if s0 == "if" {
-		r := Eval(el[1], env)
-		if _, ok := r.(Boolean); !ok {
-			if r != nil {
-				r = Boolean(true)
+	} else if el := e.(ExprList); bool(symbol_(el[0]).(Boolean)) {
+		if s0 := unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
+			return el[1]
+		} else if s0 == "if" {
+			r := Eval(el[1], env)
+			if _, ok := r.(Boolean); !ok {
+				if r != nil {
+					r = Boolean(true)
+				} else {
+					r = Boolean(false)
+				}
+			}
+			if bool(r.(Boolean)) { 
+				return Eval(el[2], env)
 			} else {
-				r = Boolean(false)
+				return Eval(el[3], env)
 			}
-		}
-		if bool(r.(Boolean)) { 
-			return Eval(el[2], env)
-		} else {
-			return Eval(el[3], env)
-		}
-	} else if s0 == "define" {
-		er := Eval(el[2], env)
-		env.Local[unwrapSymbol(el[1])] = er 
-		if _, ok := er.(Proc); !ok {
-			return er
-		}
-	} else if s0 == "set!" {
-		if env.find(unwrapSymbol(el[1])) != nil {
+		} else if s0 == "define" {
 			er := Eval(el[2], env)
-			env.find(unwrapSymbol(el[1]))[unwrapSymbol(el[1])] = er
-			return er
-		} 
-		//TODO: Error?
-	} else if s0 == "lambda" {
-		newenv := Environment{map[string]Expr{}, &env}
-		for k, v := range env.Local {
-			newenv.Local[k] = v
-		}
-		return Proc{el[1].(ExprList), el[2], newenv}
-	} else {
-		proc := Eval(el[0], env)
-		args := make(ExprList, 0)
-		for _, arg := range el[1:] {
-			args = append(args, Eval(arg, env))
-		}
-		if procf, ok := proc.(Func); ok {
-			return procf(args...)
-		} else {
-			procp := proc.(Proc)
-			for i, par := range procp.params {
-				procp.env.Local[unwrapSymbol(par)] = args[i]
+			env.Local[unwrapSymbol(el[1])] = er 
+			if _, ok := er.(Proc); !ok {
+				return er
 			}
-			return Eval(procp.body, procp.env)
+		} else if s0 == "set!" {
+			if env.find(unwrapSymbol(el[1])) != nil {
+				er := Eval(el[2], env)
+				env.find(unwrapSymbol(el[1]))[unwrapSymbol(el[1])] = er
+				return er
+			} 
+			//TODO: Error?
+		} else if s0 == "lambda" {
+			newenv := Environment{map[string]Expr{}, &env}
+			for k, v := range env.Local {
+				newenv.Local[k] = v
+			}
+			return Proc{el[1].(ExprList), el[2], newenv}
+		} else {
+			proc := Eval(el[0], env)
+			args := make(ExprList, 0)
+			for _, arg := range el[1:] {
+				args = append(args, Eval(arg, env))
+			}
+			if procf, ok := proc.(Func); ok {
+				return procf(args...)
+			} else {
+				procp := proc.(Proc)
+				for i, par := range procp.params {
+					procp.env.Local[unwrapSymbol(par)] = args[i]
+				}
+				return Eval(procp.body, procp.env)
+			}
 		}
 	}
 	return Number(0)

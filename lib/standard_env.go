@@ -147,8 +147,6 @@ func number_(args ...Expr) Expr {
 }
 
 func symbol_(args ...Expr) Expr {
-	if _, ok := args[0].(Symbol); ok {
-		return Number(1)
-	}
-	return Number(0)
+	_, ok := args[0].(Symbol)
+	return Boolean(ok)
 }
