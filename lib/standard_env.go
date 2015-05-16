@@ -73,40 +73,28 @@ func lt(args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
-	if args[0].(Number) < args[1].(Number) {
-		return Expr(Number(1))
-	} 
-	return Expr(Number(0))
+	return Boolean(args[0].(Number) < args[1].(Number)) 
 }
 
 func ge(args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
-	if args[0].(Number) >= args[1].(Number) {
-		return Expr(Number(1))
-	} 
-	return Expr(Number(0))
+	return Boolean(args[0].(Number) >= args[1].(Number))
 }
 
 func le(args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
-	if args[0].(Number) <= args[1].(Number) {
-		return Expr(Number(1))
-	} 
-	return Expr(Number(0))
+	return Boolean(args[0].(Number) <= args[1].(Number))
 }
 
 func eq(args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
-	if args[0] == args[1] {
-		return Expr(Number(1))
-	} 
-	return Expr(Number(0))
+	return Boolean(args[0] == args[1])
 }
 
 func abs(args ...Expr) Expr {
@@ -141,10 +129,7 @@ func list(args ...Expr) Expr {
 }
 
 func list_(args ...Expr) Expr {
-	if reflect.TypeOf(args[0]).Name() == "ExprList" {
-		return Number(1)
-	}
-	return Number(0)
+	return Boolean(reflect.TypeOf(args[0]).Name() == "ExprList")
 }
 
 func null_(args ...Expr) Expr {

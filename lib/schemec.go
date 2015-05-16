@@ -88,7 +88,7 @@ func Parse(s *[]string) Expr {
 func Eval(e Expr, env Environment) Expr {
 	if unwrapNumber(symbol_(e)) == 1 {
 		return env.find(unwrapSymbol(e))[unwrapSymbol(e)]
-	} else if unwrapNumber(list_(e)) == 0 {
+	} else if !bool(list_(e).(Boolean)) {
 		return e
 	} else if el, s0 := e.(ExprList), unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
 		return el[1]
