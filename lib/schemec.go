@@ -134,8 +134,7 @@ func Eval(e Expr, env Environment) Expr {
 			}
 			if procf, ok := proc.(Func); ok {
 				return procf(args...)
-			} else {
-				procp := proc.(Proc)
+			} else if procp, ok2 := proc.(Proc); ok2 {
 				for i, par := range procp.params {
 					procp.env.Local[unwrapSymbol(par)] = args[i]
 				}
