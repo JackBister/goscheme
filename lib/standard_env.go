@@ -36,31 +36,37 @@ func typeOf(e Expr) reflect.Kind {
 }
 
 func add(args ...Expr) Expr {
-	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
-		//TODO: Error
+	ret := unwrapNumber(args[0])
+	for i := 1; i < len(args); i++ {
+		ret += unwrapNumber(args[i])
 	}
-	return Expr(Number(args[0].(Number)+args[1].(Number)))
+	return Number(ret)
 }
 
 func sub(args ...Expr) Expr {
-	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
-		//TODO: Error
+	ret := unwrapNumber(args[0])
+	for i := 1; i < len(args); i++ {
+		ret -= unwrapNumber(args[i])
 	}
-	return Expr(Number(args[0].(Number)-args[1].(Number)))
+	return Number(ret)
 }
 
 func mul(args ...Expr) Expr {
-	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
-		//TODO: Error
+	ret := unwrapNumber(args[0])
+	for i := 1; i < len(args); i++ {
+		ret *= unwrapNumber(args[i])
 	}
-	return Expr(Number(args[0].(Number)*args[1].(Number)))
+	return Number(ret)
+
 }
 
 func div(args ...Expr) Expr {
-	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
-		//TODO: Error
+	ret := unwrapNumber(args[0])
+	for i := 1; i < len(args); i++ {
+		ret /= unwrapNumber(args[i])
 	}
-	return Expr(Number(args[0].(Number)/args[1].(Number)))
+	return Number(ret)
+
 }
 
 func gt(args ...Expr) Expr {
