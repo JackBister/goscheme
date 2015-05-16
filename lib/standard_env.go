@@ -17,6 +17,7 @@ func StandardEnv() map[string]Expr {
 		"<=": Func(le),
 		"=": Func(eq),
 		"abs": Func(abs),
+		"append": Func(sappend),
 		//TODO:append,apply,begin,car,cdr,cons,eq?
 		"car": Func(car),
 		"cdr": Func(cdr),
@@ -103,6 +104,15 @@ func abs(args ...Expr) Expr {
 	}
 	xf := float64(args[0].(Number))
 	return Expr(Number(math.Abs(xf)))
+}
+
+func sappend(args ...Expr) Expr {
+	ret := make(ExprList, 0)
+	for _, arg := range args {
+		argl := arg.(ExprList)
+		ret = append(ret, argl...)
+	} 
+	return ret
 }
 
 func car(args ...Expr) Expr {
