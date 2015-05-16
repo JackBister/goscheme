@@ -28,6 +28,7 @@ func StandardEnv() map[string]Expr {
 		"list?": Func(list_),
 		"null?": Func(null_),
 		"number?": Func(number_),
+		"procedure?": Func(procedure_),
 		"symbol?": Func(symbol_),
 	}
 }
@@ -165,6 +166,16 @@ func number_(args ...Expr) Expr {
 		return Number(1)
 	}
 	return Number(0)
+}
+
+func procedure_(args ...Expr) Expr {
+	if _, ok := args[0].(Proc); ok {
+		return Boolean(true)
+	}
+	if _, ok := args[0].(Func); ok {
+		return Boolean(true)
+	}
+	return Boolean(false)
 }
 
 func symbol_(args ...Expr) Expr {
