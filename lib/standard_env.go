@@ -18,6 +18,7 @@ func StandardEnv() map[string]Expr {
 		"=": Func(eq),
 		"abs": Func(abs),
 		"append": Func(sappend),
+		"begin": Func(begin),
 		//TODO:append,apply,begin,car,cdr,cons,eq?
 		"car": Func(car),
 		"cdr": Func(cdr),
@@ -119,6 +120,10 @@ func sappend(args ...Expr) Expr {
 		ret = append(ret, argl...)
 	} 
 	return ret
+}
+
+func begin(args ...Expr) Expr {
+	return ExprList(args)[len(args)-1]
 }
 
 func car(args ...Expr) Expr {
