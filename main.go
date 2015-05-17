@@ -5,7 +5,6 @@ import (
 	"github.com/jackbister/schemec/lib"
 	"os"
 	"strconv"
-	"strings"
 )
 
 var env schemec.Environment
@@ -32,7 +31,6 @@ func eval(s string) {
 	r := schemec.Eval(p, env)
 	if f, ok := r.(schemec.Number); ok {
 		fs := strconv.FormatFloat(float64(f), 'f', -1, 64)
-		doti := strings.Index(s, ".")
 		r = schemec.Symbol(fs)
 	}
 	fmt.Println(r)
