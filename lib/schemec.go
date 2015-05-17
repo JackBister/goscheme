@@ -52,6 +52,13 @@ func (e *Environment) find(s string) map[string]Expr {
 	}
 	return e.Parent.find(s)
 }
+func (e *Environment) copy() Environment {
+	nm := map[string]Expr{}
+	for k, v := range e.Local {
+		nm[k] = v
+	}
+	return Environment{nm, e.Parent}
+}
 
 func Tokenize(s string) []string {
 	ss := strings.Split(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), " ")
@@ -135,10 +142,12 @@ func Eval(e Expr, env Environment) Expr {
 			if procf, ok := proc.(Func); ok {
 				return procf(args...)
 			} else if procp, ok2 := proc.(Proc); ok2 {
+				nEnv := procp.env.copy()
+				nEnv.Parent = &env
 				for i, par := range procp.params {
-					procp.env.Local[unwrapSymbol(par)] = args[i]
+					nEnv.Local[unwrapSymbol(par)] = args[i]
 				}
-				return Eval(procp.body, procp.env)
+				return Eval(procp.body, nEnv)
 			}
 		}
 	}
