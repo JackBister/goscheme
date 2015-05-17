@@ -33,9 +33,6 @@ func eval(s string) {
 	if f, ok := r.(schemec.Number); ok {
 		fs := strconv.FormatFloat(float64(f), 'f', -1, 64)
 		doti := strings.Index(s, ".")
-		if doti > 0 {
-			fs = strings.Trim(fs[doti:], "0")
-		}
 		r = schemec.Symbol(fs)
 	}
 	fmt.Println(r)

@@ -3,6 +3,7 @@ package schemec
 import (
 	"math"
 	"reflect"
+	"strconv"
 )
 
 func StandardEnv() map[string]Expr {
@@ -29,6 +30,7 @@ func StandardEnv() map[string]Expr {
 		"null?": Func(null_),
 		"number?": Func(number_),
 		"procedure?": Func(procedure_),
+		"round": Func(round),
 		"symbol?": Func(symbol_),
 	}
 }
@@ -176,6 +178,12 @@ func procedure_(args ...Expr) Expr {
 		return Boolean(true)
 	}
 	return Boolean(false)
+}
+
+func round(args ...Expr) Expr {
+	s := strconv.FormatFloat(unwrapNumber(args[0]), 'f', 0, 64)
+	r,_ := strconv.ParseFloat(s, 64)
+	return Number(r)
 }
 
 func symbol_(args ...Expr) Expr {
