@@ -20,7 +20,6 @@ func StandardEnv() map[string]Expr {
 		"abs": Func(abs),
 		"append": Func(sappend),
 		"begin": Func(begin),
-		//TODO:append,apply,begin,car,cdr,cons,eq?
 		"car": Func(car),
 		"cdr": Func(cdr),
 		"equal?": Func(eq),
@@ -32,6 +31,7 @@ func StandardEnv() map[string]Expr {
 		"procedure?": Func(procedure_),
 		"round": Func(round),
 		"symbol?": Func(symbol_),
+		//TODO:apply, cons, eq?, map, max, min, not
 	}
 }
 
