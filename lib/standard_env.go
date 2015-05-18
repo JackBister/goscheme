@@ -30,12 +30,13 @@ func StandardEnv() map[string]Expr {
 		"map": BuiltIn{smap},
 		"max": BuiltIn{max},
 		"min": BuiltIn{min},
+		"not": BuiltIn{not},
 		"null?": BuiltIn{null_},
 		"number?": BuiltIn{number_},
 		"procedure?": BuiltIn{procedure_},
 		"round": BuiltIn{round},
 		"symbol?": BuiltIn{symbol_},
-		//TODO: cons, eq?, not
+		//TODO: cons, eq?
 	}
 }
 
@@ -205,6 +206,11 @@ func min(e Environment, args ...Expr) Expr {
 		}
 	}
 	return Number(min)
+}
+
+func not(e Environment, args ...Expr) Expr {
+	//TODO: Error
+	return Boolean(!(bool(args[0].(Boolean))))
 }
 
 func null_(e Environment, args ...Expr) Expr {
