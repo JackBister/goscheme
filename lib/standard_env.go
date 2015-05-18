@@ -28,12 +28,14 @@ func StandardEnv() map[string]Expr {
 		"list": BuiltIn{list},
 		"list?": BuiltIn{list_},
 		"map": BuiltIn{smap},
+		"max": BuiltIn{max},
+		"min": BuiltIn{min},
 		"null?": BuiltIn{null_},
 		"number?": BuiltIn{number_},
 		"procedure?": BuiltIn{procedure_},
 		"round": BuiltIn{round},
 		"symbol?": BuiltIn{symbol_},
-		//TODO: cons, eq?, max, min, not
+		//TODO: cons, eq?, not
 	}
 }
 
@@ -172,6 +174,31 @@ func smap(e Environment, args ...Expr) Expr {
 		ret = append(ret, proc.eval(e, exp))
 	}
 	return ret
+}
+
+func max(e Environment, args ...Expr) Expr {
+	//TODO: Error
+	max := math.Inf(-1)
+	eList := args[0].(ExprList)
+	for _, arg := range eList {
+		n := unwrapNumber(arg)
+		if n > max {
+			max = n
+		}
+	}
+	return Number(max)
+}
+
+func min(e Environment, args ...Expr) Expr {
+	min := math.Inf(1)
+	eList := args[0].(ExprList)
+	for _, arg := range eList {
+		n := unwrapNumber(arg)
+		if n < min {
+			min = n
+		}
+	}
+	return Number(min)
 }
 
 func null_(e Environment, args ...Expr) Expr {
