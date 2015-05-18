@@ -5,6 +5,7 @@ import (
 	"github.com/jackbister/schemec/lib"
 	"os"
 	"strconv"
+	"strings"
 )
 
 var env schemec.Environment
@@ -19,9 +20,8 @@ func readLoop() {
 	for {
 		fmt.Print(">>")
 		in, _ := reader.ReadString('\n')
-		if len(in) > 0 {
-			eval(in[:len(in)-1])
-		}
+		in = strings.Trim(in, " \r\n")
+		eval(in)
 	}
 }
 
