@@ -109,7 +109,13 @@ func eq(e Environment, args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
-	return Boolean(args[0] == args[1])
+	cmp := args[0]
+	for _, arg := range args {
+		if arg != cmp {
+			return Boolean(false)
+		}
+	}
+	return Boolean(true)
 }
 
 func abs(e Environment, args ...Expr) Expr {
