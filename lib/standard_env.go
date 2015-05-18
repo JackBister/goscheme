@@ -8,6 +8,8 @@ import (
 
 func StandardEnv() map[string]Expr {
 	return map[string]Expr {
+		"#f": Boolean(false),
+		"#t": Boolean(true),
 		"+": BuiltIn{add},
 		"-": BuiltIn{sub},
 		"*": BuiltIn{mul},
