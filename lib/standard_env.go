@@ -258,7 +258,11 @@ func car(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(ExprList); !ok {
 		return Error{"car: Argument 1 is not a list."}
 	}
-	return args[0].(ExprList)[0]
+	eList := args[0].(ExprList)
+	if len(eList) == 0 {
+		return Error{"car: List has length 0"}
+	}
+	return eList[0]
 }
 
 func cdr(e Environment, args ...Expr) Expr {
@@ -271,7 +275,11 @@ func cdr(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(ExprList); !ok {
 		return Error{"cdr: Argument 1 is not a list."}
 	}
-	return args[0].(ExprList)[1:]
+	eList := args[0].(ExprList)
+	if len(eList) < 2 {
+		return ExprList{}
+	}
+	return eList[1:]
 }
 
 func length(e Environment, args ...Expr) Expr {
