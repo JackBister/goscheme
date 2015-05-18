@@ -8,29 +8,29 @@ import (
 
 func StandardEnv() map[string]Expr {
 	return map[string]Expr {
-		"+": Func(add),
-		"-": Func(sub),
-		"*": Func(mul),
-		"/": Func(div),
-		">": Func(gt),
-		"<": Func(lt),
-		">=": Func(ge),
-		"<=": Func(le),
-		"=": Func(eq),
-		"abs": Func(abs),
-		"append": Func(sappend),
-		"begin": Func(begin),
-		"car": Func(car),
-		"cdr": Func(cdr),
-		"equal?": Func(eq),
-		"length": Func(length),
-		"list": Func(list),
-		"list?": Func(list_),
-		"null?": Func(null_),
-		"number?": Func(number_),
-		"procedure?": Func(procedure_),
-		"round": Func(round),
-		"symbol?": Func(symbol_),
+		"+": BuiltIn{add},
+		"-": BuiltIn{sub},
+		"*": BuiltIn{mul},
+		"/": BuiltIn{div},
+		">": BuiltIn{gt},
+		"<": BuiltIn{lt},
+		">=": BuiltIn{ge},
+		"<=": BuiltIn{le},
+		"=": BuiltIn{eq},
+		"abs": BuiltIn{abs},
+		"append": BuiltIn{sappend},
+		"begin": BuiltIn{begin},
+		"car": BuiltIn{car},
+		"cdr": BuiltIn{cdr},
+		"equal?": BuiltIn{eq},
+		"length": BuiltIn{length},
+		"list": BuiltIn{list},
+		"list?": BuiltIn{list_},
+		"null?": BuiltIn{null_},
+		"number?": BuiltIn{number_},
+		"procedure?": BuiltIn{procedure_},
+		"round": BuiltIn{round},
+		"symbol?": BuiltIn{symbol_},
 		//TODO:apply, cons, eq?, map, max, min, not
 	}
 }
@@ -39,7 +39,7 @@ func typeOf(e Expr) reflect.Kind {
 	return reflect.TypeOf(e).Kind()
 }
 
-func add(args ...Expr) Expr {
+func add(e Environment, args ...Expr) Expr {
 	ret := unwrapNumber(args[0])
 	for i := 1; i < len(args); i++ {
 		ret += unwrapNumber(args[i])
@@ -47,7 +47,7 @@ func add(args ...Expr) Expr {
 	return Number(ret)
 }
 
-func sub(args ...Expr) Expr {
+func sub(e Environment, args ...Expr) Expr {
 	ret := unwrapNumber(args[0])
 	for i := 1; i < len(args); i++ {
 		ret -= unwrapNumber(args[i])
@@ -55,7 +55,7 @@ func sub(args ...Expr) Expr {
 	return Number(ret)
 }
 
-func mul(args ...Expr) Expr {
+func mul(e Environment, args ...Expr) Expr {
 	ret := unwrapNumber(args[0])
 	for i := 1; i < len(args); i++ {
 		ret *= unwrapNumber(args[i])
@@ -64,7 +64,7 @@ func mul(args ...Expr) Expr {
 
 }
 
-func div(args ...Expr) Expr {
+func div(e Environment, args ...Expr) Expr {
 	ret := unwrapNumber(args[0])
 	for i := 1; i < len(args); i++ {
 		ret /= unwrapNumber(args[i])
@@ -73,42 +73,42 @@ func div(args ...Expr) Expr {
 
 }
 
-func gt(args ...Expr) Expr {
+func gt(e Environment, args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
 	return Boolean(args[0].(Number) > args[1].(Number))
 }
 
-func lt(args ...Expr) Expr {
+func lt(e Environment, args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
 	return Boolean(args[0].(Number) < args[1].(Number)) 
 }
 
-func ge(args ...Expr) Expr {
+func ge(e Environment, args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
 	return Boolean(args[0].(Number) >= args[1].(Number))
 }
 
-func le(args ...Expr) Expr {
+func le(e Environment, args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
 	return Boolean(args[0].(Number) <= args[1].(Number))
 }
 
-func eq(args ...Expr) Expr {
+func eq(e Environment, args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 || typeOf(args[1]) != reflect.Float64 {
 		//TODO: Error
 	}
 	return Boolean(args[0] == args[1])
 }
 
-func abs(args ...Expr) Expr {
+func abs(e Environment, args ...Expr) Expr {
 	if typeOf(args[0]) != reflect.Float64 {
 		//TODO: Error
 	}
@@ -116,7 +116,7 @@ func abs(args ...Expr) Expr {
 	return Expr(Number(math.Abs(xf)))
 }
 
-func sappend(args ...Expr) Expr {
+func sappend(e Environment, args ...Expr) Expr {
 	ret := make(ExprList, 0)
 	for _, arg := range args {
 		argl := arg.(ExprList)
@@ -125,26 +125,26 @@ func sappend(args ...Expr) Expr {
 	return ret
 }
 
-func begin(args ...Expr) Expr {
+func begin(e Environment, args ...Expr) Expr {
 	return ExprList(args)[len(args)-1]
 }
 
-func car(args ...Expr) Expr {
+func car(e Environment, args ...Expr) Expr {
 	//TODO: Error check
 	return args[0].(ExprList)[0]
 }
 
-func cdr(args ...Expr) Expr {
+func cdr(e Environment, args ...Expr) Expr {
 	//TODO: Error check
 	return args[0].(ExprList)[1:]
 }
 
-func length(args ...Expr) Expr {
+func length(e Environment, args ...Expr) Expr {
 	//TODO: Error check
 	return Number(len(args[0].(ExprList)))
 }
 
-func list(args ...Expr) Expr {
+func list(e Environment, args ...Expr) Expr {
 	ret := make(ExprList, 0)
 	for _, e := range args {
 		ret = append(ret, e)
@@ -152,41 +152,38 @@ func list(args ...Expr) Expr {
 	return ret
 }
 
-func list_(args ...Expr) Expr {
+func list_(e Environment, args ...Expr) Expr {
 	return Boolean(reflect.TypeOf(args[0]).Name() == "ExprList")
 }
 
-func null_(args ...Expr) Expr {
+func null_(e Environment, args ...Expr) Expr {
 	if len(args[0].(ExprList)) == 0 {
 		return Number(1)
 	}
 	return Number(0)
 }
 
-func number_(args ...Expr) Expr {
+func number_(e Environment, args ...Expr) Expr {
 	if reflect.TypeOf(args[0]).Implements(reflect.TypeOf(Number(0))) {
 		return Number(1)
 	}
 	return Number(0)
 }
 
-func procedure_(args ...Expr) Expr {
+func procedure_(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(Proc); ok {
-		return Boolean(true)
-	}
-	if _, ok := args[0].(Func); ok {
 		return Boolean(true)
 	}
 	return Boolean(false)
 }
 
-func round(args ...Expr) Expr {
+func round(e Environment, args ...Expr) Expr {
 	s := strconv.FormatFloat(unwrapNumber(args[0]), 'f', 0, 64)
 	r,_ := strconv.ParseFloat(s, 64)
 	return Number(r)
 }
 
-func symbol_(args ...Expr) Expr {
+func symbol_(e Environment, args ...Expr) Expr {
 	_, ok := args[0].(Symbol)
 	return Boolean(ok)
 }

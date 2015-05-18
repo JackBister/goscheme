@@ -32,12 +32,26 @@ func (el ExprList) isExpr() {}
 type Func func(...Expr) Expr
 func (a Func) isExpr() {}
 
-type Proc struct {
+type Proc interface {
+	eval(Environment, ...Expr) Expr
+}
+
+type UserProc struct {
 	params ExprList
 	body Expr
-	env Environment
 }
-func (p Proc) isExpr() {}
+func (u UserProc) eval(e Environment, args ...Expr) Expr {
+	return Eval(u.body, e)
+} 
+func (u UserProc) isExpr() {}
+
+type BuiltIn struct {
+	fn func(Environment, ...Expr) Expr
+}
+func (b BuiltIn) eval(e Environment, args ...Expr) Expr {
+	return b.fn(e, args...)
+}
+func (b BuiltIn) isExpr() {}
 
 type Environment struct {
 	Local map[string]Expr
@@ -93,11 +107,11 @@ func Parse(s *[]string) Expr {
 }
 
 func Eval(e Expr, env Environment) Expr {
-	if bool(symbol_(e).(Boolean)) {
+	if bool(symbol_(env, e).(Boolean)) {
 		return env.find(unwrapSymbol(e))[unwrapSymbol(e)]
-	} else if !bool(list_(e).(Boolean)) {
+	} else if !bool(list_(env, e).(Boolean)) {
 		return e
-	} else if el := e.(ExprList); bool(symbol_(el[0]).(Boolean)) {
+	} else if el := e.(ExprList); bool(symbol_(env, el[0]).(Boolean)) {
 		if s0 := unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
 			return el[1]
 		} else if s0 == "if" {
@@ -132,22 +146,25 @@ func Eval(e Expr, env Environment) Expr {
 			for k, v := range env.Local {
 				newenv.Local[k] = v
 			}
-			return Proc{el[1].(ExprList), el[2], newenv}
+			return UserProc{el[1].(ExprList), el[2]}
 		} else {
 			proc := Eval(el[0], env)
 			args := make(ExprList, 0)
 			for _, arg := range el[1:] {
 				args = append(args, Eval(arg, env))
 			}
-			if procf, ok := proc.(Func); ok {
-				return procf(args...)
-			} else if procp, ok2 := proc.(Proc); ok2 {
-				nEnv := procp.env.copy()
+			if procp, ok2 := proc.(Proc); ok2 {
+				nEnv := env.copy()
 				nEnv.Parent = &env
-				for i, par := range procp.params {
-					nEnv.Local[unwrapSymbol(par)] = args[i]
+				if uprocp, ok3 := proc.(UserProc); ok3 {
+					for i, par := range uprocp.params {
+						nEnv.Local[unwrapSymbol(par)] = args[i]
+					}
 				}
-				return Eval(procp.body, nEnv)
+				return procp.eval(nEnv, args...)
+			} else {
+				//TODO
+				fmt.Println("Error: Expected procedure")
 			}
 		}
 	}
