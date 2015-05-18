@@ -19,6 +19,7 @@ func StandardEnv() map[string]Expr {
 		"=": BuiltIn{eq},
 		"abs": BuiltIn{abs},
 		"append": BuiltIn{sappend},
+		"apply": BuiltIn{apply},
 		"begin": BuiltIn{begin},
 		"car": BuiltIn{car},
 		"cdr": BuiltIn{cdr},
@@ -123,6 +124,12 @@ func sappend(e Environment, args ...Expr) Expr {
 		ret = append(ret, argl...)
 	} 
 	return ret
+}
+
+func apply(e Environment, args ...Expr) Expr {
+	proc := args[0].(Proc)
+	argl := args[1].(ExprList)
+	return proc.eval(e, argl...)
 }
 
 func begin(e Environment, args ...Expr) Expr {
