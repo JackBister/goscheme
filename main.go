@@ -33,5 +33,8 @@ func eval(s string) {
 		fs := strconv.FormatFloat(float64(f), 'f', -1, 64)
 		r = schemec.Symbol(fs)
 	}
+	if _, ok := r.(schemec.Error); ok {
+		fmt.Print("Error: ")
+	}
 	fmt.Println(r)
 }

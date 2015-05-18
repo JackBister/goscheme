@@ -53,6 +53,12 @@ func (b BuiltIn) eval(e Environment, args ...Expr) Expr {
 }
 func (b BuiltIn) isExpr() {}
 
+type Error struct {
+	s string
+}
+func (e Error) Error() string { return e.s }
+func (e Error) isExpr() {}
+
 type Environment struct {
 	Local map[string]Expr
 	Parent *Environment
