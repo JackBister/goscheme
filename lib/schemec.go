@@ -176,7 +176,7 @@ func Eval(e Expr, env Environment) Expr {
 			}
 		}
 	}
-	return Number(0)
+	return Symbol("")
 }
 
 func atom(s string) Expr {

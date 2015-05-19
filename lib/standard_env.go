@@ -482,7 +482,10 @@ func load(e Environment, args ...Expr) Expr {
 	ins = strings.Replace(ins, "\r", "", -1)
 	t := Tokenize(ins)
 	for len(t) != 0 {
-		fmt.Println(Eval(Parse(&t), GlobalEnv))
+		r := Eval(Parse(&t), GlobalEnv)
+		if s, ok := r.(Symbol); !ok || string(s) != "" {
+			fmt.Println(r)
+		}
 	}
 	return Boolean(true)
 }

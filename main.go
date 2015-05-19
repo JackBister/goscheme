@@ -37,5 +37,7 @@ func eval(s string) {
 	if _, ok := r.(schemec.Error); ok {
 		fmt.Print("Error: ")
 	}
-	fmt.Println(r)
+	if s, ok := r.(schemec.Symbol); !ok || string(s) != "" {
+		fmt.Println(r)
+	}
 }
