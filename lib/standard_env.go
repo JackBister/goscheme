@@ -1,8 +1,11 @@
 package schemec 
 
 import (
+	"fmt"
+	"io/ioutil"
 	"math"
 	"strconv"
+	"strings"
 )
 
 func StandardEnv() map[string]Expr {
@@ -28,6 +31,7 @@ func StandardEnv() map[string]Expr {
 		"length": BuiltIn{length},
 		"list": BuiltIn{list},
 		"list?": BuiltIn{list_},
+		"load": BuiltIn{load},
 		"map": BuiltIn{smap},
 		"max": BuiltIn{max},
 		"min": BuiltIn{min},
@@ -451,4 +455,34 @@ func symbol_(e Environment, args ...Expr) Expr {
 	}
 	_, ok := args[0].(Symbol)
 	return Boolean(ok)
+}
+
+func load(e Environment, args ...Expr) Expr {
+	if len(args) > 1 {
+		return Error{"load: Too many arguments (max 1)."}
+	}
+	if len(args) == 0 {
+		return Error{"load: Too few arguments (need 1)."}
+	}
+	if _, ok := args[0].(Symbol); !ok {
+		return Error{"load: Argument 1 is not a symbol"}
+	}
+	s := unwrapSymbol(args[0])
+	in, err := ioutil.ReadFile(s)
+	if err != nil && !strings.HasSuffix(s, ".scm") {
+		s += ".scm"
+		in, err = ioutil.ReadFile(s)
+		if err != nil {
+			return Boolean(false)
+		}
+	}
+	ins := string(in)
+	ins = strings.Replace(ins, "\t", "", -1)
+	ins = strings.Replace(ins, "\n", "", -1)
+	ins = strings.Replace(ins, "\r", "", -1)
+	t := Tokenize(ins)
+	for len(t) != 0 {
+		fmt.Println(Eval(Parse(&t), GlobalEnv))
+	}
+	return Boolean(true)
 }

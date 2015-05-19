@@ -80,6 +80,8 @@ func (e *Environment) copy() Environment {
 	return Environment{nm, e.Parent}
 }
 
+var GlobalEnv Environment
+
 func Tokenize(s string) []string {
 	ss := strings.Split(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), " ")
 	r := make([]string, 0)
