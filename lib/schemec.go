@@ -133,7 +133,7 @@ func Eval(e Expr, env Environment) Expr {
 			}
 			if bool(r.(Boolean)) { 
 				return Eval(el[2], env)
-			} else {
+			} else if len(el) > 3 {
 				return Eval(el[3], env)
 			}
 		} else if s0 == "define" {
