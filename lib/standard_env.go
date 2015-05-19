@@ -540,7 +540,7 @@ func send(e Environment, args ...Expr) Expr {
 	} else {
 		c <- args[1]
 	}
-	return Boolean(true)
+	return args[1]
 }
 
 func sleep(e Environment, args ...Expr) Expr {
