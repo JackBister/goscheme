@@ -2,7 +2,6 @@ package schemec
 
 import (
 	"math"
-	"reflect"
 	"strconv"
 )
 
@@ -40,10 +39,6 @@ func StandardEnv() map[string]Expr {
 		"symbol?": BuiltIn{symbol_},
 		//TODO: cons, eq?
 	}
-}
-
-func typeOf(e Expr) reflect.Kind {
-	return reflect.TypeOf(e).Kind()
 }
 
 func add(e Environment, args ...Expr) Expr {
@@ -413,10 +408,10 @@ func number_(e Environment, args ...Expr) Expr {
 	if len(args) == 0 {
 		return Error{"number?: Too few arguments (need 1)."}
 	}
-	if reflect.TypeOf(args[0]).Implements(reflect.TypeOf(Number(0))) {
-		return Number(1)
+	if _, ok := args[0].(Number); !ok {
+		return Boolean(false)
 	}
-	return Number(0)
+	return Boolean(true)
 }
 
 func procedure_(e Environment, args ...Expr) Expr {
