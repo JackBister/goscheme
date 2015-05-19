@@ -26,6 +26,9 @@ func unwrapSymbol(s Expr) string {
 type Boolean bool
 func (b Boolean) isExpr() {}
 
+type Channel chan Expr
+func (c Channel) isExpr() {}
+
 type ExprList []Expr
 func (el ExprList) isExpr() {}
 
@@ -155,6 +158,12 @@ func Eval(e Expr, env Environment) Expr {
 				newenv.Local[k] = v
 			}
 			return UserProc{el[1].(ExprList), el[2]}
+		} else if s0 == "go" {
+			c := make(Channel)
+			go func(c chan Expr) {
+				c <- Eval(el[1], env)
+			}(c)
+			return c
 		} else {
 			proc := Eval(el[0], env)
 			args := make(ExprList, 0)

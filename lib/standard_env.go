@@ -22,12 +22,15 @@ func StandardEnv() map[string]Expr {
 		">=": BuiltIn{ge},
 		"<=": BuiltIn{le},
 		"=": BuiltIn{eq},
+		"<-": BuiltIn{send},
+		"->": BuiltIn{receive},
 		"abs": BuiltIn{abs},
 		"append": BuiltIn{sappend},
 		"apply": BuiltIn{apply},
 		"begin": BuiltIn{begin},
 		"car": BuiltIn{car},
 		"cdr": BuiltIn{cdr},
+		"chan": BuiltIn{schan},
 		"equal?": BuiltIn{eq},
 		"length": BuiltIn{length},
 		"list": BuiltIn{list},
@@ -459,6 +462,25 @@ func symbol_(e Environment, args ...Expr) Expr {
 	return Boolean(ok)
 }
 
+func schan(e Environment, args ...Expr) Expr {
+	return Channel(make(chan Expr))
+}
+
+func sclose(e Environment, args ...Expr) Expr {
+	if len(args) > 1 {
+		return Error{"close: Too many arguments (max 1)."}
+	}
+	if len(args) == 0 {
+		return Error{"close: Too few arguments (need 1)."}
+	}
+	if c, ok := args[0].(Channel); !ok {
+		return Error{"close: Argument 1 is not a channel."}
+	} else {
+		close(c)
+	}
+	return Boolean(true)
+}
+
 func load(e Environment, args ...Expr) Expr {
 	if len(args) > 1 {
 		return Error{"load: Too many arguments (max 1)."}
@@ -488,6 +510,35 @@ func load(e Environment, args ...Expr) Expr {
 		if s, ok := r.(Symbol); !ok || string(s) != "" {
 			fmt.Println(r)
 		}
+	}
+	return Boolean(true)
+}
+
+func receive(e Environment, args ... Expr) Expr {
+	if len(args) > 1 {
+		return Error{"->: Too many arguments (max 1)."}
+	}
+	if len(args) == 0 {
+		return Error{"->: Too few arguments (need 1)."}
+	}
+	if c, ok := args[0].(Channel); !ok {
+		return Error{"->: Argument 1 is not a channel."}
+	} else {
+		return <- c
+	}
+}
+
+func send(e Environment, args ...Expr) Expr {
+	if len(args) > 2 {
+		return Error{"<-: Too many arguments (max 2)."}
+	}
+	if len(args) < 2 {
+		return Error{"<-: Too few arguments (need 2)."}
+	}
+	if c, ok := args[0].(Channel); !ok {
+		return Error{"<-: Argument 1 is not a channel."}
+	} else {
+		c <- args[1]
 	}
 	return Boolean(true)
 }
