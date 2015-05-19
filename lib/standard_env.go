@@ -6,6 +6,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func StandardEnv() map[string]Expr {
@@ -40,6 +41,7 @@ func StandardEnv() map[string]Expr {
 		"number?": BuiltIn{number_},
 		"procedure?": BuiltIn{procedure_},
 		"round": BuiltIn{round},
+		"sleep": BuiltIn{sleep},
 		"symbol?": BuiltIn{symbol_},
 		//TODO: cons, eq?
 	}
@@ -487,5 +489,20 @@ func load(e Environment, args ...Expr) Expr {
 			fmt.Println(r)
 		}
 	}
+	return Boolean(true)
+}
+
+func sleep(e Environment, args ...Expr) Expr {
+	if len(args) > 1 {
+		return Error{"sleep: Too many arguments (max 1)."}
+	}
+	if len(args) == 0 {
+		return Error{"sleep: Too few arguments (need 1)."}
+	}
+	if _, ok := args[0].(Number); !ok {
+		return Error{"sleep: Argument 1 is not a number."}
+	}
+	t := time.Duration(unwrapNumber(args[0]))*time.Millisecond
+	<-time.After(t)
 	return Boolean(true)
 }
