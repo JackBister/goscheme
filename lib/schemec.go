@@ -1,4 +1,4 @@
-package schemec
+package goscheme
 
 import (
 	"fmt"
