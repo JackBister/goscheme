@@ -233,7 +233,7 @@ func sappend(e Environment, args ...Expr) Expr {
 		}
 		argl := arg.(ExprList)
 		ret = append(ret, argl...)
-	} 
+	}
 	return ret
 }
 
@@ -385,7 +385,7 @@ func not(e Environment, args ...Expr) Expr {
 	if len(args) == 0 {
 		return Error{"not: Too few arguments (need 1)."}
 	}
-	
+
 	if _, ok := args[0].(Boolean); !ok {
 		if args[0] != nil {
 			return Boolean(false)

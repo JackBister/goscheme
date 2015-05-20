@@ -45,7 +45,7 @@ type UserProc struct {
 }
 func (u UserProc) eval(e Environment, args ...Expr) Expr {
 	return Eval(u.body, e)
-} 
+}
 func (u UserProc) isExpr() {}
 
 type BuiltIn struct {
@@ -98,7 +98,7 @@ func Tokenize(s string) []string {
 
 func Parse(s *[]string) Expr {
 	if len(*s) == 0 {
-		fmt.Println("Unexpected EOF")	
+		fmt.Println("Unexpected EOF")
 		os.Exit(0)
 	}
 	t := (*s)[0]
@@ -106,7 +106,7 @@ func Parse(s *[]string) Expr {
 	if t == "(" {
 		l := make(ExprList, 0)
 		for (*s)[0] != ")" {
-			l = append(l, Parse(s))	
+			l = append(l, Parse(s))
 		}
 		*s = (*s)[1:]
 		return l
@@ -134,14 +134,14 @@ func Eval(e Expr, env Environment) Expr {
 					r = Boolean(false)
 				}
 			}
-			if bool(r.(Boolean)) { 
+			if bool(r.(Boolean)) {
 				return Eval(el[2], env)
 			} else if len(el) > 3 {
 				return Eval(el[3], env)
 			}
 		} else if s0 == "define" {
 			er := Eval(el[2], env)
-			env.Local[unwrapSymbol(el[1])] = er 
+			env.Local[unwrapSymbol(el[1])] = er
 			if _, ok := er.(Proc); !ok {
 				return er
 			}
@@ -150,7 +150,7 @@ func Eval(e Expr, env Environment) Expr {
 				er := Eval(el[2], env)
 				env.find(unwrapSymbol(el[1]))[unwrapSymbol(el[1])] = er
 				return er
-			} 
+			}
 			//TODO: Error?
 		} else if s0 == "lambda" {
 			newenv := Environment{map[string]Expr{}, &env}
@@ -194,6 +194,6 @@ func atom(s string) Expr {
 	}
 	if f, err := strconv.ParseFloat(s, 64); err == nil {
 		return Number(f)
-	}		
+	}
 	return Symbol(s)
 }
