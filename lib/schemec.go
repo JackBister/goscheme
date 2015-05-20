@@ -2,7 +2,6 @@ package goscheme
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -98,8 +97,7 @@ func Tokenize(s string) []string {
 
 func Parse(s *[]string) Expr {
 	if len(*s) == 0 {
-		fmt.Println("Unexpected EOF")
-		os.Exit(0)
+		return Error{"Unexpected EOF."}
 	}
 	t := (*s)[0]
 	*s = (*s)[1:]
@@ -111,8 +109,7 @@ func Parse(s *[]string) Expr {
 		*s = (*s)[1:]
 		return l
 	} else if t == ")" {
-		fmt.Println("Unexpected ')'")
-		os.Exit(0)
+		return Error{"Unexpected ')'."}
 	}
 	return atom(t)
 }
