@@ -21,8 +21,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
+	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -59,6 +61,7 @@ func StandardEnv() map[string]Expr {
 		"not": BuiltIn{not},
 		"null?": BuiltIn{null_},
 		"number?": BuiltIn{number_},
+		"pmap": BuiltIn{pmap},
 		"procedure?": BuiltIn{procedure_},
 		"round": BuiltIn{round},
 		"sleep": BuiltIn{sleep},
@@ -573,4 +576,45 @@ func sleep(e Environment, args ...Expr) Expr {
 	t := time.Duration(unwrapNumber(args[0]))*time.Millisecond
 	<-time.After(t)
 	return Boolean(true)
+}
+
+func pmap(e Environment, args ...Expr) Expr {
+	if len(args) > 2 {
+		return Error{"pmap: Too many arguments (need 2)."}
+	}
+	if len(args) < 0 {
+		return Error{"pmap: Too few arguments (need 2)."}
+	}
+	if _, ok := args[0].(Proc); !ok {
+		return Error{"pmap: Argument 1 is not a function."}
+	}
+	if _, ok := args[1].(ExprList); !ok {
+		return Error{"pmap: Argument 2 is not a list."}
+	}
+	proc := args[0].(Proc)
+	eList := args[1].(ExprList)
+	maxprocs := runtime.GOMAXPROCS(0)
+	procs := maxprocs
+	if len(eList) < maxprocs {
+		procs = len(eList)
+	}
+	var wg sync.WaitGroup
+	wg.Add(procs)
+	ret := make(ExprList, len(eList))
+	for i := 0; i < procs; i++ {
+		go func(j int) {
+			start := j*(len(eList)/procs)
+			end := start + len(eList)/procs
+			fmt.Println("start", start, "end", end)
+			r := smap(e, proc.(Expr), eList[start:end])
+			rlist := r.(ExprList)
+			fmt.Println(rlist)
+			for k := 0; k < len(rlist); k++ {
+				ret[start+k] = rlist[k]
+			}
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+	return ret
 }
