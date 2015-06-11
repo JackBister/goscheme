@@ -608,12 +608,15 @@ func pmap(e Environment, args ...Expr) Expr {
 	ret := make(ExprList, len(eList))
 	for i := 0; i < procs; i++ {
 		go func(j int) {
-			start := j*(len(eList)/procs)
-			end := start + len(eList)/procs
-			fmt.Println("start", start, "end", end)
+			//length := int(math.Ceil(float64(len(eList))/float64(procs)))
+			length := len(eList)/procs
+			start := j*length
+			end := start + length
+			if j == procs-1 && end < len(ret) {
+				end = len(ret)
+			}
 			r := smap(e, proc.(Expr), eList[start:end])
 			rlist := r.(ExprList)
-			fmt.Println(rlist)
 			for k := 0; k < len(rlist); k++ {
 				ret[start+k] = rlist[k]
 			}
