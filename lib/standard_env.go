@@ -357,7 +357,12 @@ func smap(e Environment, args ...Expr) Expr {
 	eList := args[1].(ExprList)
 	ret := make(ExprList, 0)
 	for _, exp := range eList {
-		ret = append(ret, proc.eval(e, exp))
+		nEnv := e.copy()
+		nEnv.Parent = &e
+		if uprocp, ok := proc.(UserProc); ok {
+			nEnv.Local[unwrapSymbol(uprocp.params[0])] = exp
+		}
+		ret = append(ret, proc.eval(nEnv, exp))
 	}
 	return ret
 }
