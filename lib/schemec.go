@@ -122,6 +122,9 @@ func Parse(s *[]string) Expr {
 		l := make(ExprList, 0)
 		for (*s)[0] != ")" {
 			l = append(l, Parse(s))
+			if len(*s) == 0 {
+				return Error{"Missing ')'"}
+			}
 		}
 		*s = (*s)[1:]
 		return l
