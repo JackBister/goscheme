@@ -19,13 +19,19 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"flag"
 	"github.com/jackbister/goscheme/lib"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 )
 
 func main() {
+	maxp := flag.Int("cores", runtime.NumCPU(), "Sets the number of CPU cores that the interpreter may use. If not given, " +
+			 "all available cores will be used.")
+	flag.Parse()
+	runtime.GOMAXPROCS(*maxp)
 	goscheme.GlobalEnv = goscheme.Environment{goscheme.StandardEnv(), nil}
 	readLoop()
 }
