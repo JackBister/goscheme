@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Expr interface {
@@ -181,6 +182,11 @@ func Eval(e Expr, env Environment) Expr {
 				c <- Eval(el[1], env)
 			}(c)
 			return c
+		} else if s0 == "time" {
+			t := time.Now()
+			ret := Eval(el[1], env)
+			fmt.Println("time:", time.Now().Sub(t))
+			return ret
 		} else {
 			proc := Eval(el[0], env)
 			args := make(ExprList, 0)
