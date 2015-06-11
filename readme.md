@@ -4,7 +4,7 @@ This is a Lisp-y language interpreter implemented in Go. It also contains some G
 ##Examples
     (define c (go (+ 1 1)))
 
-Creates a new goroutine which calculates the value of 1. The result is sent on the channel c.
+Creates a new goroutine which calculates the value of 1+1. The result is sent on the channel c.
 
     (define r (-> c))
 
