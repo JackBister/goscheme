@@ -33,6 +33,9 @@ func main() {
 	flag.Parse()
 	runtime.GOMAXPROCS(*maxp)
 	goscheme.GlobalEnv = goscheme.Environment{goscheme.StandardEnv(), nil}
+	for _, a := range flag.Args() {
+		eval("(load (quote " + a + "))")
+	}
 	readLoop()
 }
 
