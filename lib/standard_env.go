@@ -517,9 +517,11 @@ func load(e Environment, args ...Expr) Expr {
 		return Error{"load: Argument 1 is not a symbol"}
 	}
 	s := unwrapSymbol(args[0])
+	fmt.Println("Reading file " + s + "...")
 	in, err := ioutil.ReadFile(s)
 	if err != nil && !strings.HasSuffix(s, ".scm") {
 		s += ".scm"
+		fmt.Println("Not found, reading file " + s + "...")
 		in, err = ioutil.ReadFile(s)
 		if err != nil {
 			return Boolean(false)
