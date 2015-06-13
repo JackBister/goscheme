@@ -30,13 +30,16 @@ import (
 func main() {
 	maxp := flag.Int("cores", runtime.NumCPU(), "Sets the number of CPU cores that the interpreter may use. If not given, " +
 			 "all available cores will be used.")
+	interactive := flag.Bool("i", false, "Enters interactive mode after executing the given files. If no files are given this is the default.")
 	flag.Parse()
 	runtime.GOMAXPROCS(*maxp)
 	goscheme.GlobalEnv = goscheme.Environment{goscheme.StandardEnv(), nil}
 	for _, a := range flag.Args() {
 		eval("(load (quote " + a + "))")
 	}
-	readLoop()
+	if *interactive || len(flag.Args()) == 0 {
+		readLoop()
+	}
 }
 
 func readLoop() {
