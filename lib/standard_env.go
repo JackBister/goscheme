@@ -50,6 +50,7 @@ func StandardEnv() map[string]Expr {
 		"car": BuiltIn{car},
 		"cdr": BuiltIn{cdr},
 		"chan": BuiltIn{schan},
+		"cons": BuiltIn{cons},
 		"equal?": BuiltIn{eq},
 		"length": BuiltIn{length},
 		"list": BuiltIn{list},
@@ -304,6 +305,16 @@ func cdr(e Environment, args ...Expr) Expr {
 		return ExprList{}
 	}
 	return eList[1:]
+}
+
+func cons(e Environment, args ...Expr) Expr {
+	if len(args) > 2 {
+		return Error{"cons: Too many arguments (need 2)."}
+	}
+	if len(args) < 2 {
+		return Error{"length: Too few arguments (need 2)."}
+	}
+	return ExprList{args[0], args[1]}
 }
 
 func length(e Environment, args ...Expr) Expr {
