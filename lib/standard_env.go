@@ -56,6 +56,7 @@ func StandardEnv() map[string]Expr {
 		"chan": BuiltIn{"chan", 0, 0, schan},
 		"cons": BuiltIn{"cons", 2, 2, cons},
 		"cos": BuiltIn{"cos", 1, 1, cos},
+		"exp": BuiltIn{"exp", 1, 1, exp},
 		"equal?": BuiltIn{"equal?", 2, 2, eq},
 		"length": BuiltIn{"length", 1, 1, length},
 		"list": BuiltIn{"list", 0, -1, list},
@@ -273,6 +274,14 @@ func cdr(e Environment, args ...Expr) Expr {
 
 func cons(e Environment, args ...Expr) Expr {
 	return ExprList{args[0], args[1]}
+}
+
+func exp(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Number); !ok {
+		return Error{"exp: Argument 1 is not a number."}
+	} else {
+		return Number(math.Exp(float64(v)))
+	}
 }
 
 func length(e Environment, args ...Expr) Expr {
