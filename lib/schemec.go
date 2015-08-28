@@ -61,6 +61,15 @@ type UserProc struct {
 	body Expr
 }
 func (u UserProc) eval(e Environment, args ...Expr) Expr {
+	if len(args) < len(u.params) {
+		return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)) + ")"}
+	}
+	if len(args) > len(u.params) {
+		return Error{"Too many arguments (need " + strconv.Itoa(len(u.params)) + ")"}
+	}
+	for i, par := range u.params {
+		e.Local[unwrapSymbol(par)] = args[i]
+	}
 	return Eval(u.body, e)
 }
 func (u UserProc) isExpr() {}
@@ -204,11 +213,6 @@ func Eval(e Expr, env Environment) Expr {
 			if procp, ok2 := proc.(Proc); ok2 {
 				nEnv := env.copy()
 				nEnv.Parent = &env
-				if uprocp, ok3 := proc.(UserProc); ok3 {
-					for i, par := range uprocp.params {
-						nEnv.Local[unwrapSymbol(par)] = args[i]
-					}
-				}
 				return procp.eval(nEnv, args...)
 			} else {
 				//TODO
