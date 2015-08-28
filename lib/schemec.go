@@ -66,9 +66,17 @@ func (u UserProc) eval(e Environment, args ...Expr) Expr {
 func (u UserProc) isExpr() {}
 
 type BuiltIn struct {
+	name string
+	minParams, maxParams int
 	fn func(Environment, ...Expr) Expr
 }
 func (b BuiltIn) eval(e Environment, args ...Expr) Expr {
+	if len(args) < b.minParams {
+		return Error{b.name + ": Too few arguments (need " + strconv.Itoa(b.minParams) + ")"}
+	}
+	if len(args) > b.maxParams && b.maxParams != -1 {
+		return Error{b.name + ": Too many arguments (max " + strconv.Itoa(b.maxParams) + ")"}
+	}
 	return b.fn(e, args...)
 }
 func (b BuiltIn) isExpr() {}
