@@ -57,6 +57,7 @@ func StandardEnv() map[string]Expr {
 		"list": BuiltIn{"list", 0, -1, list},
 		"list?": BuiltIn{"list?", 1, 1, list_},
 		"load": BuiltIn{"load", 1, 1, load},
+		"log": BuiltIn{"log", 1, 1, log},
 		"map": BuiltIn{"map", 2, -1, smap},
 		"max": BuiltIn{"max", 2, -1, max},
 		"min": BuiltIn{"min", 2, -1, min},
@@ -431,6 +432,14 @@ func load(e Environment, args ...Expr) Expr {
 		}
 	}
 	return Boolean(true)
+}
+
+func log(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Number); !ok {
+		return Error{"log: Argument 1 is not a number"}
+	} else {
+		return Number(math.Log(float64(v)))
+	}
 }
 
 func receive(e Environment, args ... Expr) Expr {
