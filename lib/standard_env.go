@@ -445,6 +445,11 @@ func send(e Environment, args ...Expr) Expr {
 	if c, ok := args[0].(Channel); !ok {
 		return Error{"<-: Argument 1 is not a channel."}
 	} else {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("<-: Attempt to send on a closed channel")
+			}
+		}()
 		c <- args[1]
 	}
 	return args[1]
