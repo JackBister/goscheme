@@ -154,12 +154,17 @@ func Parse(s *[]string) Expr {
 
 func Eval(e Expr, env Environment) Expr {
 	if bool(symbol_(env, e).(Boolean)) {
+		if unwrapSymbol(e)[0] == '\'' {
+			return Symbol(unwrapSymbol(e)[1:])
+		}
 		return env.find(unwrapSymbol(e))[unwrapSymbol(e)]
 	} else if !bool(list_(env, e).(Boolean)) {
 		return e
 	} else if el := e.(ExprList); bool(symbol_(env, el[0]).(Boolean)) {
 		if s0 := unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
 			return el[1]
+		} else if s0[0] == '\'' {
+			return Symbol(s0[1:])
 		} else if s0 == "if" {
 			r := Eval(el[1], env)
 			if _, ok := r.(Boolean); !ok {
