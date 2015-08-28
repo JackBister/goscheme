@@ -47,6 +47,7 @@ func StandardEnv() map[string]Expr {
 		"append": BuiltIn{"append", 2, -1, sappend},
 		"apply": BuiltIn{"apply", 2, -1, apply},
 		"begin": BuiltIn{"begin", 0, -1, begin},
+		"close": BuiltIn{"close", 1, 1, sclose},
 		"car": BuiltIn{"car", 1, 1, car},
 		"cdr": BuiltIn{"cdr", 1, 1, cdr},
 		"chan": BuiltIn{"chan", 0, 0, schan},
