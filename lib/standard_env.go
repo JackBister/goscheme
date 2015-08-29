@@ -58,6 +58,7 @@ func StandardEnv() map[string]Expr {
 		"cos": BuiltIn{"cos", 1, 1, cos},
 		"exp": BuiltIn{"exp", 1, 1, exp},
 		"equal?": BuiltIn{"equal?", 2, 2, eq},
+		"eqv?": BuiltIn{"eqv?", 2, 2, eqv},
 		"length": BuiltIn{"length", 1, 1, length},
 		"list": BuiltIn{"list", 0, -1, list},
 		"list?": BuiltIn{"list?", 1, 1, list_},
@@ -215,6 +216,29 @@ func eq(e Environment, args ...Expr) Expr {
 	}
 	return Boolean(true)
 
+}
+
+//TODO: char=?, exact/inexact
+func eqv(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(ExprList); ok {
+		if v2, ok2 := args[1].(ExprList); ok2 {
+			return Boolean(listeqv(v, v2))
+		}
+	}
+
+	if v, ok := args[0].(BuiltIn); ok {
+		if v2, ok2 := args[1].(BuiltIn); ok2 {
+			return Boolean(builtineqv(v, v2))
+		}
+	}
+
+	if v, ok := args[0].(UserProc); ok {
+		if v2, ok2 := args[1].(UserProc); ok2 {
+			return eqv(e, v.body, v2.body).(Boolean)
+		}
+	}
+
+	return Boolean(args[0] == args[1])
 }
 
 func abs(e Environment, args ...Expr) Expr {
