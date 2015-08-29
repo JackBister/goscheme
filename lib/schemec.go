@@ -58,6 +58,7 @@ type Proc interface {
 }
 
 type UserProc struct {
+	variadic bool
 	params ExprList
 	body Expr
 }
@@ -65,11 +66,14 @@ func (u UserProc) eval(e Environment, args ...Expr) Expr {
 	if len(args) < len(u.params) {
 		return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)) + ")"}
 	}
-	if len(args) > len(u.params) {
+	if len(args) > len(u.params) && !u.variadic {
 		return Error{"Too many arguments (need " + strconv.Itoa(len(u.params)) + ")"}
 	}
 	for i, par := range u.params {
 		e.Local[unwrapSymbol(par)] = args[i]
+		if i == len(u.params)-1 && u.variadic {
+			e.Local[unwrapSymbol(par)] = ExprList(args[i:])
+		}
 	}
 	return Eval(u.body, e)
 }
@@ -200,7 +204,11 @@ func Eval(e Expr, env Environment) Expr {
 			for k, v := range env.Local {
 				newenv.Local[k] = v
 			}
-			return UserProc{el[1].(ExprList), el[2]}
+			if _, ok := el[1].(ExprList); ok {
+				return UserProc{false, el[1].(ExprList), el[2]}
+			} else if v, ok := el[1].(Symbol); ok {
+				return UserProc{true, ExprList{v}, el[2]}
+			}
 		} else if s0 == "go" {
 			c := make(Channel)
 			go func(c chan Expr) {
