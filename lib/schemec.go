@@ -120,6 +120,9 @@ func (e *Environment) copy() Environment {
 var GlobalEnv Environment
 
 func Tokenize(s string) []string {
+	s = strings.Replace(s, "\t", "", -1)
+	s = strings.Replace(s, "\n", "", -1)
+	s = strings.Replace(s, "\r", "", -1)
 	ss := strings.Split(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), " ")
 	r := make([]string, 0)
 	for _, e := range ss {

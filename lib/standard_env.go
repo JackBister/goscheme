@@ -92,9 +92,6 @@ func StandardEnv() Environment {
 			panic("Error while loading standard library")
 		}
 		ins := string(in)
-		ins = strings.Replace(ins, "\t", "", -1)
-		ins = strings.Replace(ins, "\n", "", -1)
-		ins = strings.Replace(ins, "\r", "", -1)
 		t := Tokenize(ins)
 		for len(t) != 0 {
 			r := Eval(Parse(&t), e)
@@ -485,9 +482,6 @@ func load(e Environment, args ...Expr) Expr {
 		}
 	}
 	ins := string(in)
-	ins = strings.Replace(ins, "\t", "", -1)
-	ins = strings.Replace(ins, "\n", "", -1)
-	ins = strings.Replace(ins, "\r", "", -1)
 	t := Tokenize(ins)
 	for len(t) != 0 {
 		r := Eval(Parse(&t), GlobalEnv)
