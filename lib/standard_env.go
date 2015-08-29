@@ -28,8 +28,8 @@ import (
 	"time"
 )
 
-func StandardEnv() map[string]Expr {
-	return map[string]Expr {
+func StandardEnv() Environment {
+	e := Environment{ map[string]Expr {
 		"#f": Boolean(false),
 		"#t": Boolean(true),
 		"+": BuiltIn{"+", 0, -1, add},
@@ -78,7 +78,32 @@ func StandardEnv() map[string]Expr {
 		"symbol?": BuiltIn{"symbol?", 1, 1, symbol_},
 		"tan": BuiltIn{"tan", 1, 1, tan},
 		//TODO: eq?
+	}, nil }
+	dirc, err := ioutil.ReadDir("std")
+	if err != nil {
+		panic("Error while loading standard library")
 	}
+	for _, fi := range dirc {
+		if !strings.HasSuffix(fi.Name(), ".scm") {
+			continue
+		}
+		in, err := ioutil.ReadFile("std/" + fi.Name())
+		if err != nil {
+			panic("Error while loading standard library")
+		}
+		ins := string(in)
+		ins = strings.Replace(ins, "\t", "", -1)
+		ins = strings.Replace(ins, "\n", "", -1)
+		ins = strings.Replace(ins, "\r", "", -1)
+		t := Tokenize(ins)
+		for len(t) != 0 {
+			r := Eval(Parse(&t), e)
+			if s, ok := r.(Symbol); !ok || string(s) != "" {
+				fmt.Println(r)
+			}
+		}
+	}
+	return e
 }
 
 func add(e Environment, args ...Expr) Expr {

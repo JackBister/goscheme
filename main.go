@@ -33,7 +33,7 @@ func main() {
 	interactive := flag.Bool("i", false, "Enters interactive mode after executing the given files. If no files are given this is the default.")
 	flag.Parse()
 	runtime.GOMAXPROCS(*maxp)
-	goscheme.GlobalEnv = goscheme.Environment{goscheme.StandardEnv(), nil}
+	goscheme.GlobalEnv = goscheme.StandardEnv()
 	for _, a := range flag.Args() {
 		eval("(load (quote " + a + "))")
 	}
