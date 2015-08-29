@@ -68,6 +68,7 @@ func StandardEnv() Environment {
 		"map": BuiltIn{"map", 2, -1, smap},
 		"max": BuiltIn{"max", 2, -1, max},
 		"min": BuiltIn{"min", 2, -1, min},
+		"remainder": BuiltIn{"remainder", 2, 2, remainder},
 		"not": BuiltIn{"not", 1, 1, not},
 		"null?": BuiltIn{"null?", 1, 1, null_},
 		"number?": BuiltIn{"number?", 1, 1, number_},
