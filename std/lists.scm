@@ -3,6 +3,10 @@
 ;Because map runs in order in this implementation, map and for-each are equivalent.
 (define for-each map)
 
+(define list-tail (lambda (li k) (if (zero? k) li (list-tail (cdr li) (- k 1)))))
+
+(define list-ref (lambda (li k) (car (list-tail li k))))
+
 (define member (lambda (obj li) (if (empty? li (list)) #f (if (equal? obj (car li)) li (member obj (cdr li))))))
 
 (define memq (lambda (obj li) (if (empty? li) #f (if (eq? obj (car li)) li (memq obj (cdr li))))))
