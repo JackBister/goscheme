@@ -19,6 +19,7 @@ package goscheme
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -118,11 +119,10 @@ func (e *Environment) copy() Environment {
 }
 
 var GlobalEnv Environment
+var wsReplacer,_ = regexp.Compile("\t|\n|\r|;.*?\n")
 
 func Tokenize(s string) []string {
-	s = strings.Replace(s, "\t", "", -1)
-	s = strings.Replace(s, "\n", "", -1)
-	s = strings.Replace(s, "\r", "", -1)
+	s = wsReplacer.ReplaceAllString(s, "")
 	ss := strings.Split(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), " ")
 	r := make([]string, 0)
 	for _, e := range ss {
