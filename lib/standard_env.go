@@ -57,6 +57,7 @@ func StandardEnv() Environment {
 		"cons": BuiltIn{"cons", 2, 2, cons},
 		"cos": BuiltIn{"cos", 1, 1, cos},
 		"exp": BuiltIn{"exp", 1, 1, exp},
+		"eq?": BuiltIn{"eq?", 2, 2, eqv},
 		"equal?": BuiltIn{"equal?", 2, 2, eq},
 		"eqv?": BuiltIn{"eqv?", 2, 2, eqv},
 		"length": BuiltIn{"length", 1, 1, length},
