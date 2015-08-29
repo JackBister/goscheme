@@ -7,3 +7,5 @@
 
 (define memv (lambda (obj li) (if (eqv? li (list)) #f (if (eqv? obj (car li)) li (memv obj (cdr li))))))
 
+(define reverse (lambda (li) (if (eqv? li (list)) (list) (append (reverse (cdr li)) (list (car li))))))
+
