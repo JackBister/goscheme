@@ -72,6 +72,9 @@ func (u UserProc) eval(e Environment, args ...Expr) Expr {
 	for i, par := range u.params {
 		e.Local[unwrapSymbol(par)] = args[i]
 		if i == len(u.params)-1 && u.variadic {
+			if i != 0 && unwrapSymbol(u.params[i-1]) == "." {
+				i -= 1
+			}
 			e.Local[unwrapSymbol(par)] = ExprList(args[i:])
 		}
 	}
@@ -204,7 +207,16 @@ func Eval(e Expr, env Environment) Expr {
 			for k, v := range env.Local {
 				newenv.Local[k] = v
 			}
-			if _, ok := el[1].(ExprList); ok {
+			if l, ok := el[1].(ExprList); ok {
+				for i, v := range l {
+					if v == Symbol(".") {
+						if i != len(l)-2 {
+							return Error{"Multiple variables after '.' not allowed!"}
+						}
+						//append(...) removes the . from the list of params
+						return UserProc{true, append(l[:i], l[i+1:]...), el[2]}
+					}
+				}
 				return UserProc{false, el[1].(ExprList), el[2]}
 			} else if v, ok := el[1].(Symbol); ok {
 				return UserProc{true, ExprList{v}, el[2]}
