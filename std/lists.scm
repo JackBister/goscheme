@@ -1,5 +1,13 @@
 (define empty? (lambda (li) (eqv? li (list))))
 
+(define filter (lambda (pred li) (
+	if (empty? li) li (
+		if (pred (car li)) (append (list (car li)) (filter pred (cdr li)))
+			(filter pred (cdr li))))))
+
+(define filter-map (lambda (f li)
+	(filter (lambda (x) (not (not x))) (map f li))))
+
 (define list-tail (lambda (li k) (if (zero? k) li (list-tail (cdr li) (- k 1)))))
 
 (define list-ref (lambda (li k) (car (list-tail li k))))
@@ -20,9 +28,16 @@
 
 (define memv (lambda (obj li) (if (empty? li) #f (if (eqv? obj (car li)) li (memv obj (cdr li))))))
 
+(define remove (lambda (pred li) (
+	if (empty? li) li (
+		if (pred (car li)) (remove pred (cdr li)) (
+			append (list (car li)) (remove pred (cdr li)))))))
+
 (define reverse (lambda (li) (if (empty? li) (list) (append (reverse (cdr li)) (list (car li))))))
 
 (define some? (lambda (pred li) (if (empty? li) #f (if (pred (car li)) #t (some? pred (cdr li))))))
+
+(define zip (lambda lis (apply (lambda (x) (map list x)) lis)))
 
 ;Because map runs in order in this implementation, map and for-each are equivalent.
 (define for-each map)
