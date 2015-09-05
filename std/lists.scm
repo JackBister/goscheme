@@ -1,7 +1,5 @@
 (define empty? (lambda (li) (eqv? li (list))))
 
-;Because map runs in order in this implementation, map and for-each are equivalent.
-(define for-each map)
 
 (define list-tail (lambda (li k) (if (zero? k) li (list-tail (cdr li) (- k 1)))))
 
@@ -25,3 +23,5 @@
 
 (define reverse (lambda (li) (if (empty? li) (list) (append (reverse (cdr li)) (list (car li))))))
 
+;Because map runs in order in this implementation, map and for-each are equivalent.
+(define for-each map)
