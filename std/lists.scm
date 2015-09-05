@@ -37,7 +37,7 @@
 
 (define some? (lambda (pred li) (if (empty? li) #f (if (pred (car li)) #t (some? pred (cdr li))))))
 
-(define zip (lambda lis (apply (lambda (x) (map list x)) lis)))
+(define zip (lambda lis (apply map list lis)))
 
 ;Because map runs in order in this implementation, map and for-each are equivalent.
 (define for-each map)
