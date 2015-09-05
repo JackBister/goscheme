@@ -1,3 +1,5 @@
+(define concatenate (lambda (li) (apply append li)))
+
 (define empty? (lambda (li) (eqv? li (list))))
 
 (define filter (lambda (pred li) (
