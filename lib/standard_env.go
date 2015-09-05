@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"runtime"
+//	"runtime"
 	"strconv"
 	"strings"
-	"sync"
+//	"sync"
 	"time"
 )
 
@@ -65,14 +65,13 @@ func StandardEnv() Environment {
 		"list?": BuiltIn{"list?", 1, 1, list_},
 		"load": BuiltIn{"load", 1, 1, load},
 		"log": BuiltIn{"log", 1, 1, log},
-		"map": BuiltIn{"map", 2, -1, smap},
 		"max": BuiltIn{"max", 2, -1, max},
 		"min": BuiltIn{"min", 2, -1, min},
 		"modulo": BuiltIn{"modulo", 2, 2, modulo},
 		"not": BuiltIn{"not", 1, 1, not},
 		"null?": BuiltIn{"null?", 1, 1, null_},
 		"number?": BuiltIn{"number?", 1, 1, number_},
-		"pmap": BuiltIn{"pmap", 2, -1, pmap},
+		//"pmap": BuiltIn{"pmap", 2, -1, pmap},
 		"procedure?": BuiltIn{"procedure?", 1, 1, procedure_},
 		"remainder": BuiltIn{"remainder", 2, 2, remainder},
 		"round": BuiltIn{"round", 1, 1, round},
@@ -251,26 +250,6 @@ func list_(e Environment, args ...Expr) Expr {
 	return Boolean(true)
 }
 
-func smap(e Environment, args ...Expr) Expr {
-	//TODO: Handle multiple list parameters, e.g.
-	//(map + (list 1 2) (list 3 4)) => [4 6]
-	if _, ok := args[0].(Proc); !ok {
-		return Error{"map: Argument 1 is not a function."}
-	}
-	if _, ok := args[1].(ExprList); !ok {
-		return Error{"map: Argument 2 is not a list."}
-	}
-	proc := args[0].(Proc)
-	eList := args[1].(ExprList)
-	ret := make(ExprList, 0)
-	for _, exp := range eList {
-		nEnv := e.copy()
-		nEnv.Parent = &e
-		ret = append(ret, proc.eval(nEnv, exp))
-	}
-	return ret
-}
-
 func max(e Environment, args ...Expr) Expr {
 	max := math.Inf(-1)
 	eList := args[0].(ExprList)
@@ -427,6 +406,7 @@ func sleep(e Environment, args ...Expr) Expr {
 	return Boolean(true)
 }
 
+/*
 func pmap(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(Proc); !ok {
 		return Error{"pmap: Argument 1 is not a function."}
@@ -464,3 +444,4 @@ func pmap(e Environment, args ...Expr) Expr {
 	wg.Wait()
 	return ret
 }
+*/
