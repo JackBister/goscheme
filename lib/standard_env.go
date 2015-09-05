@@ -182,11 +182,10 @@ func sappend(e Environment, args ...Expr) Expr {
 }
 
 func apply(e Environment, args ...Expr) Expr {
-	//TODO: Errors
-	//For example. (apply + 1 (list 1 2)) is a valid call
 	proc := args[0].(Proc)
-	argl := args[1].(ExprList)
-	return proc.eval(e, argl...)
+	argn := args[1:len(args)-1]
+	argl := args[len(args)-1].(ExprList)
+	return proc.eval(e, append(argn, argl...)...)
 }
 
 //TODO: 0 args => return the begin proc
