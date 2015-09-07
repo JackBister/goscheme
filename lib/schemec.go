@@ -130,7 +130,7 @@ var wsReplacer,_ = regexp.Compile("\t|\n|\r|;.*?\n")
 
 func Tokenize(s string) []string {
 	s = wsReplacer.ReplaceAllString(s, "")
-	ss := strings.Split(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), " ")
+	ss := strings.Split(strings.Replace(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), "'", " ' ", -1), " ")
 	r := make([]string, 0)
 	for _, e := range ss {
 		if e != " " && e != "" {
@@ -174,7 +174,7 @@ func Eval(e Expr, env Environment) Expr {
 		if s0 := unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
 			return el[1]
 		} else if s0[0] == '\'' {
-			return Symbol(s0[1:])
+			return el[1]
 		} else if s0 == "if" {
 			r := Eval(el[1], env)
 			if _, ok := r.(Boolean); !ok {
