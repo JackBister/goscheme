@@ -350,10 +350,16 @@ func sclose(e Environment, args ...Expr) Expr {
 
 //TODO: Could allow loading multiple files in one call.
 func load(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(Symbol); !ok {
-		return Error{"load: Argument 1 is not a symbol"}
+	var s string
+	if v, ok := args[0].(Symbol); !ok {
+		if v2, ok2 := args[0].(String); !ok2 {
+			return Error{"load: Argument 1 is not a string"}
+		} else {
+			s = string(v2)
+		}
+	} else {
+		s = string(v)
 	}
-	s := unwrapSymbol(args[0])
 	fmt.Println("Reading file " + s + "...")
 	in, err := ioutil.ReadFile(s)
 	if err != nil && !strings.HasSuffix(s, ".scm") {
