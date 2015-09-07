@@ -10,6 +10,12 @@
 (define filter-map (lambda (f li)
 	(filter (lambda (x) (not (not x))) (map f li))))
 
+(define fold-left (lambda (f z li)
+	(if (empty? li) z (fold-left f (f (car li) z) (cdr li)))))
+
+(define fold-right (lambda (f z li)
+	(if (empty? li) z (f (car li) (fold-right f z (cdr li))))))
+
 (define list-tail (lambda (li k) (if (zero? k) li (list-tail (cdr li) (- k 1)))))
 
 (define list-ref (lambda (li k) (car (list-tail li k))))
