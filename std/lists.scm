@@ -30,7 +30,7 @@
 	  ;otherwise, apply f to the head of the lists, and append the result to the result of mapping on the tails.
 	  (append (list (apply f (smap car lis))) (apply map f (smap cdr lis)))))))
 
-(define member (lambda (obj li) (if (empty? li (list)) #f (if (equal? obj (car li)) li (member obj (cdr li))))))
+(define member (lambda (obj li) (if (empty? li) (list) #f (if (equal? obj (car li)) li (member obj (cdr li))))))
 
 (define memq (lambda (obj li) (if (empty? li) #f (if (eq? obj (car li)) li (memq obj (cdr li))))))
 
