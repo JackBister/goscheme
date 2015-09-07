@@ -60,6 +60,7 @@ func StandardEnv() Environment {
 		"eq?": BuiltIn{"eq?", 2, 2, eqv},
 		"equal?": BuiltIn{"equal?", 2, 2, eq},
 		"eqv?": BuiltIn{"eqv?", 2, 2, eqv},
+		"error": BuiltIn{"error", 1, 1, serror},
 		"length": BuiltIn{"length", 1, 1, length},
 		"list": BuiltIn{"list", 0, -1, list},
 		"list?": BuiltIn{"list?", 1, 1, list_},
@@ -224,6 +225,14 @@ func exp(e Environment, args ...Expr) Expr {
 		return Error{"exp: Argument 1 is not a number."}
 	} else {
 		return Number(math.Exp(float64(v)))
+	}
+}
+
+func serror(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(String); !ok {
+		return Error{"error: Argument 1 is not a string."}
+	} else {
+		return Error{string(v)}
 	}
 }
 
