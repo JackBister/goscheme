@@ -41,6 +41,9 @@ func unwrapSymbol(s Expr) string {
 	return string(s.(Symbol))
 }
 
+type String string
+func (s String) isExpr() {}
+
 type Boolean bool
 func (b Boolean) isExpr() {}
 
@@ -130,7 +133,7 @@ var wsReplacer,_ = regexp.Compile("\t|\n|\r|;.*?\n")
 
 func Tokenize(s string) []string {
 	s = wsReplacer.ReplaceAllString(s, "")
-	ss := strings.Split(strings.Replace(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), "'", " ' ", -1), " ")
+	ss := strings.Split(strings.Replace(strings.Replace(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), "'", " ' ", -1), "\"", " \" ", -1), " ")
 	r := make([]string, 0)
 	for _, e := range ss {
 		if e != " " && e != "" {
@@ -146,6 +149,19 @@ func Parse(s *[]string) Expr {
 	}
 	t := (*s)[0]
 	*s = (*s)[1:]
+	if t == "\"" {
+		ss := (*s)[0]
+		*s = (*s)[1:]
+		for (*s)[0] != "\"" {
+			if len(*s) == 0 {
+				return Error{"Missing end quote"}
+			}
+			ss = strings.Join([]string{ss, (*s)[0]}, " ")
+			*s = (*s)[1:]
+		}
+		(*s) = (*s)[1:]
+		return String(ss)
+	}
 	if t == "(" {
 		l := make(ExprList, 0)
 		for (*s)[0] != ")" {
@@ -168,6 +184,8 @@ func Eval(e Expr, env Environment) Expr {
 			return Symbol(unwrapSymbol(e)[1:])
 		}
 		return env.find(unwrapSymbol(e))[unwrapSymbol(e)]
+	} else if v, ok := e.(String); ok {
+		return v
 	} else if !bool(list_(env, e).(Boolean)) {
 		return e
 	} else if el := e.(ExprList); bool(symbol_(env, el[0]).(Boolean)) {
