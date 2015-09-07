@@ -50,6 +50,11 @@ func (b Boolean) isExpr() {}
 type Channel chan Expr
 func (c Channel) isExpr() {}
 
+type EvalBlock struct {
+	e Expr
+}
+func (e EvalBlock) isExpr() {}
+
 type ExprList []Expr
 func (el ExprList) isExpr() {}
 
@@ -149,6 +154,9 @@ func Parse(s *[]string) Expr {
 	}
 	t := (*s)[0]
 	*s = (*s)[1:]
+	if t == "'" {
+		return EvalBlock{Parse(s)}
+	}
 	if t == "\"" {
 		ss := (*s)[0]
 		*s = (*s)[1:]
@@ -180,18 +188,15 @@ func Parse(s *[]string) Expr {
 
 func Eval(e Expr, env Environment) Expr {
 	if bool(symbol_(env, e).(Boolean)) {
-		if unwrapSymbol(e)[0] == '\'' {
-			return Symbol(unwrapSymbol(e)[1:])
-		}
 		return env.find(unwrapSymbol(e))[unwrapSymbol(e)]
+	} else if eb, ok := e.(EvalBlock); ok {
+		return eb.e
 	} else if v, ok := e.(String); ok {
 		return v
 	} else if !bool(list_(env, e).(Boolean)) {
 		return e
 	} else if el := e.(ExprList); bool(symbol_(env, el[0]).(Boolean)) {
 		if s0 := unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
-			return el[1]
-		} else if s0[0] == '\'' {
 			return el[1]
 		} else if s0 == "if" {
 			r := Eval(el[1], env)
