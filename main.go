@@ -54,7 +54,7 @@ func readLoop() {
 
 func eval(s string) {
 	t := goscheme.Tokenize(s)
-	p := goscheme.Parse(&t)
+	p := goscheme.Parse(&t, true)
 	r := goscheme.Eval(p, goscheme.GlobalEnv)
 	if f, ok := r.(goscheme.Number); ok {
 		fs := strconv.FormatFloat(float64(f), 'f', -1, 64)

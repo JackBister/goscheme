@@ -97,7 +97,7 @@ func StandardEnv() Environment {
 		ins := string(in)
 		t := Tokenize(ins)
 		for len(t) != 0 {
-			r := Eval(Parse(&t), e)
+			r := Eval(Parse(&t, true), e)
 			if s, ok := r.(Symbol); !ok || string(s) != "" {
 				fmt.Println(r)
 			}
@@ -373,7 +373,7 @@ func load(e Environment, args ...Expr) Expr {
 	ins := string(in)
 	t := Tokenize(ins)
 	for len(t) != 0 {
-		r := Eval(Parse(&t), GlobalEnv)
+		r := Eval(Parse(&t, true), GlobalEnv)
 		if s, ok := r.(Symbol); !ok || string(s) != "" {
 			fmt.Println(r)
 		}

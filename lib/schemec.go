@@ -148,14 +148,18 @@ func Tokenize(s string) []string {
 	return r
 }
 
-func Parse(s *[]string) Expr {
+func Parse(s *[]string, allowblock bool) Expr {
 	if len(*s) == 0 {
 		return Error{"Unexpected EOF."}
 	}
 	t := (*s)[0]
 	*s = (*s)[1:]
 	if t == "'" {
-		return EvalBlock{Parse(s)}
+		if allowblock {
+			return EvalBlock{Parse(s, false)}
+		} else {
+			return Parse(s, allowblock)
+		}
 	}
 	if t == "\"" {
 		ss := (*s)[0]
@@ -173,7 +177,7 @@ func Parse(s *[]string) Expr {
 	if t == "(" {
 		l := make(ExprList, 0)
 		for (*s)[0] != ")" {
-			l = append(l, Parse(s))
+			l = append(l, Parse(s, allowblock))
 			if len(*s) == 0 {
 				return Error{"Missing ')'"}
 			}
