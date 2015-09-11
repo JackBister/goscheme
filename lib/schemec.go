@@ -192,6 +192,9 @@ func Eval(e Expr, env Environment) Expr {
 }
 
 func atom(s string) Expr {
+	if strings.HasPrefix(s, "#\\") {
+		return decodeCharacter(s[2:])
+	}
 	if i, err := strconv.Atoi(s); err == nil {
 		return Number((i))
 	}
