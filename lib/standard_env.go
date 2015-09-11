@@ -64,6 +64,7 @@ func StandardEnv() Environment {
 		"length": BuiltIn{"length", 1, 1, length},
 		"list": BuiltIn{"list", 0, -1, list},
 		"list?": BuiltIn{"list?", 1, 1, list_},
+		"list->string": BuiltIn{"list->string", 1, 1, listtostr},
 		"load": BuiltIn{"load", 1, 1, load},
 		"log": BuiltIn{"log", 1, 1, log},
 		"max": BuiltIn{"max", 2, -1, max},
@@ -78,6 +79,7 @@ func StandardEnv() Environment {
 		"round": BuiltIn{"round", 1, 1, round},
 		"sin": BuiltIn{"sin", 1, 1, sin},
 		"sleep": BuiltIn{"sleep", 1, 1, sleep},
+		"string->list": BuiltIn{"string->list", 1, 1, strtolist},
 		"symbol?": BuiltIn{"symbol?", 1, 1, symbol_},
 		"tan": BuiltIn{"tan", 1, 1, tan},
 		//TODO: eq?
@@ -258,6 +260,23 @@ func list_(e Environment, args ...Expr) Expr {
 	return Boolean(true)
 }
 
+func listtostr(e Environment, args ...Expr) Expr {
+	if _, ok := args[0].(ExprList); !ok {
+		return Error{"list->string: Argument 1 is not a list."}
+	}
+	l := args[0].(ExprList)
+	s := make([]rune, len(l))
+	for i, v := range l {
+		if _, ok2 := v.(Character); !ok2 {
+			return Error{"list->string: All members of list must be characters."}
+		}
+		//Icky, but cannot cast directly to rune because it's not an Expr.
+		c := v.(Character)
+		s[i] = rune(c)
+	}
+	return String(s)
+}
+
 func max(e Environment, args ...Expr) Expr {
 	max := math.Inf(-1)
 	eList := args[0].(ExprList)
@@ -418,6 +437,18 @@ func sleep(e Environment, args ...Expr) Expr {
 	t := time.Duration(unwrapNumber(args[0]))*time.Millisecond
 	<-time.After(t)
 	return Boolean(true)
+}
+
+func strtolist(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(String); !ok {
+		return Error{"string->list: Argument 1 is not a list"}
+	} else {
+		r := make([]Expr, len(v))
+		for i, c := range v {
+			r[i] = Character(c)
+		}
+		return ExprList(r)
+	}
 }
 
 /*
