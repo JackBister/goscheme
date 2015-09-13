@@ -1,19 +1,19 @@
 /*
-    goscheme - a Lisp interpreter in Go
-    Copyright (C) 2015 Jack Bister
+   goscheme - a Lisp interpreter in Go
+   Copyright (C) 2015 Jack Bister
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 package goscheme
 
@@ -21,69 +21,69 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-//	"runtime"
+	//	"runtime"
 	"strconv"
 	"strings"
-//	"sync"
+	//	"sync"
 	"time"
 )
 
 func StandardEnv() Environment {
-	e := Environment{ map[string]Expr {
-		"#f": Boolean(false),
-		"#t": Boolean(true),
-		"+": BuiltIn{"+", 0, -1, add},
-		"-": BuiltIn{"-", 1, -1, sub},
-		"*": BuiltIn{"*", 0, -1, mul},
-		"/": BuiltIn{"/", 1, -1, div},
-		">": BuiltIn{">", 2, -1, gt},
-		"<": BuiltIn{"<", 2, -1, lt},
-		">=": BuiltIn{">=", 2, -1, ge},
-		"<=": BuiltIn{"<=", 2, -1, le},
-		"=": BuiltIn{"=", 2, -1, eq},
-		"<-": BuiltIn{"<-", 2, 2, send},
-		"->": BuiltIn{"->", 1, 1, receive},
-		"abs": BuiltIn{"abs", 1, 1, abs},
-		"acos": BuiltIn{"acos", 1, 1, acos},
-		"append": BuiltIn{"append", 2, -1, sappend},
-		"apply": BuiltIn{"apply", 2, -1, apply},
-		"asin": BuiltIn{"asin", 1, 1, asin},
-		"atan": BuiltIn{"atan", 1, 1, atan},
-		"begin": BuiltIn{"begin", 0, -1, begin},
-		"close": BuiltIn{"close", 1, 1, sclose},
-		"car": BuiltIn{"car", 1, 1, car},
-		"cdr": BuiltIn{"cdr", 1, 1, cdr},
-		"chan": BuiltIn{"chan", 0, 0, schan},
-		"cons": BuiltIn{"cons", 2, 2, cons},
-		"cos": BuiltIn{"cos", 1, 1, cos},
-		"exp": BuiltIn{"exp", 1, 1, exp},
-		"eq?": BuiltIn{"eq?", 2, 2, eqv},
-		"equal?": BuiltIn{"equal?", 2, 2, eq},
-		"eqv?": BuiltIn{"eqv?", 2, 2, eqv},
-		"error": BuiltIn{"error", 1, 1, serror},
-		"length": BuiltIn{"length", 1, 1, length},
-		"list": BuiltIn{"list", 0, -1, list},
-		"list?": BuiltIn{"list?", 1, 1, list_},
+	e := Environment{map[string]Expr{
+		"#f":           Boolean(false),
+		"#t":           Boolean(true),
+		"+":            BuiltIn{"+", 0, -1, add},
+		"-":            BuiltIn{"-", 1, -1, sub},
+		"*":            BuiltIn{"*", 0, -1, mul},
+		"/":            BuiltIn{"/", 1, -1, div},
+		">":            BuiltIn{">", 2, -1, gt},
+		"<":            BuiltIn{"<", 2, -1, lt},
+		">=":           BuiltIn{">=", 2, -1, ge},
+		"<=":           BuiltIn{"<=", 2, -1, le},
+		"=":            BuiltIn{"=", 2, -1, eq},
+		"<-":           BuiltIn{"<-", 2, 2, send},
+		"->":           BuiltIn{"->", 1, 1, receive},
+		"abs":          BuiltIn{"abs", 1, 1, abs},
+		"acos":         BuiltIn{"acos", 1, 1, acos},
+		"append":       BuiltIn{"append", 2, -1, sappend},
+		"apply":        BuiltIn{"apply", 2, -1, apply},
+		"asin":         BuiltIn{"asin", 1, 1, asin},
+		"atan":         BuiltIn{"atan", 1, 1, atan},
+		"begin":        BuiltIn{"begin", 0, -1, begin},
+		"close":        BuiltIn{"close", 1, 1, sclose},
+		"car":          BuiltIn{"car", 1, 1, car},
+		"cdr":          BuiltIn{"cdr", 1, 1, cdr},
+		"chan":         BuiltIn{"chan", 0, 0, schan},
+		"cons":         BuiltIn{"cons", 2, 2, cons},
+		"cos":          BuiltIn{"cos", 1, 1, cos},
+		"exp":          BuiltIn{"exp", 1, 1, exp},
+		"eq?":          BuiltIn{"eq?", 2, 2, eqv},
+		"equal?":       BuiltIn{"equal?", 2, 2, eq},
+		"eqv?":         BuiltIn{"eqv?", 2, 2, eqv},
+		"error":        BuiltIn{"error", 1, 1, serror},
+		"length":       BuiltIn{"length", 1, 1, length},
+		"list":         BuiltIn{"list", 0, -1, list},
+		"list?":        BuiltIn{"list?", 1, 1, list_},
 		"list->string": BuiltIn{"list->string", 1, 1, listtostr},
-		"load": BuiltIn{"load", 1, 1, load},
-		"log": BuiltIn{"log", 1, 1, log},
-		"max": BuiltIn{"max", 2, -1, max},
-		"min": BuiltIn{"min", 2, -1, min},
-		"modulo": BuiltIn{"modulo", 2, 2, modulo},
-		"not": BuiltIn{"not", 1, 1, not},
-		"null?": BuiltIn{"null?", 1, 1, null_},
-		"number?": BuiltIn{"number?", 1, 1, number_},
+		"load":         BuiltIn{"load", 1, 1, load},
+		"log":          BuiltIn{"log", 1, 1, log},
+		"max":          BuiltIn{"max", 2, -1, max},
+		"min":          BuiltIn{"min", 2, -1, min},
+		"modulo":       BuiltIn{"modulo", 2, 2, modulo},
+		"not":          BuiltIn{"not", 1, 1, not},
+		"null?":        BuiltIn{"null?", 1, 1, null_},
+		"number?":      BuiltIn{"number?", 1, 1, number_},
 		//"pmap": BuiltIn{"pmap", 2, -1, pmap},
-		"procedure?": BuiltIn{"procedure?", 1, 1, procedure_},
-		"remainder": BuiltIn{"remainder", 2, 2, remainder},
-		"round": BuiltIn{"round", 1, 1, round},
-		"sin": BuiltIn{"sin", 1, 1, sin},
-		"sleep": BuiltIn{"sleep", 1, 1, sleep},
+		"procedure?":   BuiltIn{"procedure?", 1, 1, procedure_},
+		"remainder":    BuiltIn{"remainder", 2, 2, remainder},
+		"round":        BuiltIn{"round", 1, 1, round},
+		"sin":          BuiltIn{"sin", 1, 1, sin},
+		"sleep":        BuiltIn{"sleep", 1, 1, sleep},
 		"string->list": BuiltIn{"string->list", 1, 1, strtolist},
-		"symbol?": BuiltIn{"symbol?", 1, 1, symbol_},
-		"tan": BuiltIn{"tan", 1, 1, tan},
+		"symbol?":      BuiltIn{"symbol?", 1, 1, symbol_},
+		"tan":          BuiltIn{"tan", 1, 1, tan},
 		//TODO: eq?
-	}, nil }
+	}, nil}
 	dirc, err := ioutil.ReadDir("std")
 	if err != nil {
 		panic("Error while loading standard library")
@@ -151,7 +151,7 @@ func div(e Environment, args ...Expr) Expr {
 		if _, ok := args[0].(Number); !ok {
 			return Error{"/: Argument 1 is not a number."}
 		}
-		return Number(1/unwrapNumber(args[0]))
+		return Number(1 / unwrapNumber(args[0]))
 	}
 	ret := unwrapNumber(args[0])
 	for i := 1; i < len(args); i++ {
@@ -186,7 +186,7 @@ func sappend(e Environment, args ...Expr) Expr {
 
 func apply(e Environment, args ...Expr) Expr {
 	proc := args[0].(Proc)
-	argn := args[1:len(args)-1]
+	argn := args[1 : len(args)-1]
 	argl := args[len(args)-1].(ExprList)
 	return proc.eval(e, append(argn, argl...)...)
 }
@@ -345,7 +345,7 @@ func round(e Environment, args ...Expr) Expr {
 		return Error{"round: Argument 1 is not a number."}
 	}
 	s := strconv.FormatFloat(unwrapNumber(args[0]), 'f', 0, 64)
-	r,_ := strconv.ParseFloat(s, 64)
+	r, _ := strconv.ParseFloat(s, 64)
 	return Number(r)
 }
 
@@ -408,11 +408,11 @@ func log(e Environment, args ...Expr) Expr {
 	}
 }
 
-func receive(e Environment, args ... Expr) Expr {
+func receive(e Environment, args ...Expr) Expr {
 	if c, ok := args[0].(Channel); !ok {
 		return Error{"->: Argument 1 is not a channel."}
 	} else {
-		return <- c
+		return <-c
 	}
 }
 
@@ -434,7 +434,7 @@ func sleep(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(Number); !ok {
 		return Error{"sleep: Argument 1 is not a number."}
 	}
-	t := time.Duration(unwrapNumber(args[0]))*time.Millisecond
+	t := time.Duration(unwrapNumber(args[0])) * time.Millisecond
 	<-time.After(t)
 	return Boolean(true)
 }

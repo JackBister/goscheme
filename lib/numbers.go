@@ -27,4 +27,3 @@ func remainder(e Environment, args ...Expr) Expr {
 	a1n := float64(args[1].(Number))
 	return Number(math.Mod(a0n, a1n))
 }
-
