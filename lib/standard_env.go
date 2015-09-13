@@ -61,6 +61,7 @@ func StandardEnv() Environment {
 		"equal?":       BuiltIn{"equal?", 2, 2, eq},
 		"eqv?":         BuiltIn{"eqv?", 2, 2, eqv},
 		"error":        BuiltIn{"error", 1, 1, serror},
+		"error?":       BuiltIn{"error?", 1, 1, error_},
 		"length":       BuiltIn{"length", 1, 1, length},
 		"list":         BuiltIn{"list", 0, -1, list},
 		"list?":        BuiltIn{"list?", 1, 1, list_},
@@ -236,6 +237,13 @@ func serror(e Environment, args ...Expr) Expr {
 	} else {
 		return Error{string(v)}
 	}
+}
+
+func error_(e Environment, args ...Expr) Expr {
+	if _, ok := args[0].(Error); !ok {
+		return Boolean(false)
+	}
+	return Boolean(true)
 }
 
 func length(e Environment, args ...Expr) Expr {
