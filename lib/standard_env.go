@@ -80,6 +80,7 @@ func StandardEnv() Environment {
 		"sin":          BuiltIn{"sin", 1, 1, sin},
 		"sleep":        BuiltIn{"sleep", 1, 1, sleep},
 		"string->list": BuiltIn{"string->list", 1, 1, strtolist},
+		"string?":      BuiltIn{"string?", 1, 1, string_},
 		"symbol?":      BuiltIn{"symbol?", 1, 1, symbol_},
 		"tan":          BuiltIn{"tan", 1, 1, tan},
 		//TODO: eq?
@@ -459,6 +460,13 @@ func strtolist(e Environment, args ...Expr) Expr {
 		}
 		return ExprList(r)
 	}
+}
+
+func string_(e Environment, args ...Expr) Expr {
+	if _, ok := args[0].(String); !ok {
+		return Boolean(false)
+	}
+	return Boolean(true)
 }
 
 /*
