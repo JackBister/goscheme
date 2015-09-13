@@ -43,7 +43,6 @@ func StandardEnv() Environment {
 		"=":            BuiltIn{"=", 2, -1, eq},
 		"<-":           BuiltIn{"<-", 2, 2, send},
 		"->":           BuiltIn{"->", 1, 1, receive},
-		"abs":          BuiltIn{"abs", 1, 1, abs},
 		"acos":         BuiltIn{"acos", 1, 1, acos},
 		"append":       BuiltIn{"append", 2, -1, sappend},
 		"apply":        BuiltIn{"apply", 2, -1, apply},
