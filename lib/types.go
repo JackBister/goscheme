@@ -1,6 +1,7 @@
 package goscheme
 
 import (
+	"fmt"
 	"strconv"
 	"unicode/utf8"
 )
@@ -15,6 +16,7 @@ The language does not distinguish between precise (int) and imprecise (float)
 values right now. 64 bit float should be sufficiently accurate for large ints.
 */
 type Number float64
+
 func (n Number) isExpr() {}
 func unwrapNumber(n Expr) float64 {
 	return float64(n.(Number))
@@ -26,76 +28,93 @@ The type used for variables. Can also be used as strings as long as it doesn't
 contain spaces...
 */
 type Symbol string
+
 func (s Symbol) isExpr() {}
 func unwrapSymbol(s Expr) string {
 	return string(s.(Symbol))
 }
 
 type String string
+
 func (s String) isExpr() {}
+func (s String) String() string {
+	return "\"" + string(s) + "\""
+}
 
 type Boolean bool
+
 func (b Boolean) isExpr() {}
+func (b Boolean) String() string {
+	if bool(b) {
+		return "#t"
+	}
+	return "#f"
+}
 
 type Character rune
+
 func (c Character) isExpr() {}
+func (c Character) String() string {
+	return fmt.Sprintf("#\\%c", c)
+}
 
 func decodeCharacter(s string) Character {
-	charMap := map[string]Character {
-		"nul": Character(0x00),
-		"soh": Character(0x01),
-		"stx": Character(0x02),
-		"etx": Character(0x03),
-		"eot": Character(0x04),
-		"enq": Character(0x05),
-		"ack": Character(0x06),
-		"alarm": Character(0x07),
-		"bel": Character(0x07),
+	charMap := map[string]Character{
+		"nul":       Character(0x00),
+		"soh":       Character(0x01),
+		"stx":       Character(0x02),
+		"etx":       Character(0x03),
+		"eot":       Character(0x04),
+		"enq":       Character(0x05),
+		"ack":       Character(0x06),
+		"alarm":     Character(0x07),
+		"bel":       Character(0x07),
 		"backspace": Character(0x08),
-		"bs": Character(0x08),
-		"tab": Character(0x09),
-		"ht": Character(0x09),
-		"linefeed": Character(0x0A),
-		"newline": Character(0x0A),
-		"lf": Character(0x0A),
-		"vtab": Character(0x0B),
-		"vt": Character(0x0B),
-		"page": Character(0x0C),
-		"ff": Character(0x0C),
-		"return": Character(0x0D),
-		"cr": Character(0x0D),
-		"so": Character(0x0E),
-		"si": Character(0x0F),
-		"dle": Character(0x10),
-		"dc1": Character(0x11),
-		"dc2": Character(0x12),
-		"dc3": Character(0x13),
-		"dc4": Character(0x14),
-		"nak": Character(0x15),
-		"syn": Character(0x16),
-		"etb": Character(0x17),
-		"can": Character(0x18),
-		"em": Character(0x19),
-		"sub": Character(0x1A),
-		"escape": Character(0x1B),
-		"esc": Character(0x1B),
-		"fs": Character(0x1C),
-		"gs": Character(0x1D),
-		"rs": Character(0x1E),
-		"us": Character(0x1F),
-		"space": Character(0x20),
-		"sp": Character(0x20),
-		"delete": Character(0x7F),
-		"del": Character(0x7F),
+		"bs":        Character(0x08),
+		"tab":       Character(0x09),
+		"ht":        Character(0x09),
+		"linefeed":  Character(0x0A),
+		"newline":   Character(0x0A),
+		"lf":        Character(0x0A),
+		"vtab":      Character(0x0B),
+		"vt":        Character(0x0B),
+		"page":      Character(0x0C),
+		"ff":        Character(0x0C),
+		"return":    Character(0x0D),
+		"cr":        Character(0x0D),
+		"so":        Character(0x0E),
+		"si":        Character(0x0F),
+		"dle":       Character(0x10),
+		"dc1":       Character(0x11),
+		"dc2":       Character(0x12),
+		"dc3":       Character(0x13),
+		"dc4":       Character(0x14),
+		"nak":       Character(0x15),
+		"syn":       Character(0x16),
+		"etb":       Character(0x17),
+		"can":       Character(0x18),
+		"em":        Character(0x19),
+		"sub":       Character(0x1A),
+		"escape":    Character(0x1B),
+		"esc":       Character(0x1B),
+		"fs":        Character(0x1C),
+		"gs":        Character(0x1D),
+		"rs":        Character(0x1E),
+		"us":        Character(0x1F),
+		"space":     Character(0x20),
+		"sp":        Character(0x20),
+		"delete":    Character(0x7F),
+		"del":       Character(0x7F),
 	}
 	if utf8.RuneCountInString(s) == 1 {
-		r,_ := utf8.DecodeRuneInString(s)
+		r, _ := utf8.DecodeRuneInString(s)
 		return Character(r)
 	}
 	return charMap[s]
 }
 
 type Channel chan Expr
+
 func (c Channel) isExpr() {}
 
 //An EvalBlock wraps an expression and delays evaluation of the expr.
@@ -103,12 +122,15 @@ func (c Channel) isExpr() {}
 type EvalBlock struct {
 	e Expr
 }
+
 func (e EvalBlock) isExpr() {}
 
 type ExprList []Expr
+
 func (el ExprList) isExpr() {}
 
 type Func func(...Expr) Expr
+
 func (a Func) isExpr() {}
 
 /*
@@ -127,8 +149,9 @@ type UserProc struct {
 	variadic bool
 	//A list of symbols that the arguments to the function will be bound to.
 	params ExprList
-	body Expr
+	body   Expr
 }
+
 func (u UserProc) isExpr() {}
 
 func (u UserProc) eval(e Environment, args ...Expr) Expr {
@@ -158,6 +181,7 @@ type BuiltIn struct {
 	//The go function this struct represents.
 	fn func(Environment, ...Expr) Expr
 }
+
 func (b BuiltIn) isExpr() {}
 
 func (b BuiltIn) eval(e Environment, args ...Expr) Expr {
@@ -173,7 +197,6 @@ func (b BuiltIn) eval(e Environment, args ...Expr) Expr {
 type Error struct {
 	s string
 }
+
 func (e Error) Error() string { return e.s }
-func (e Error) isExpr() {}
-
-
+func (e Error) isExpr()       {}
