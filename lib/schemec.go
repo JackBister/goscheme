@@ -78,6 +78,9 @@ func Parse(s *[]string, allowblock bool) Expr {
 	if t == "\"" {
 		ss := (*s)[0]
 		*s = (*s)[1:]
+		if len(*s) == 0 {
+			return Error{"Missing end quote"}
+		}
 		for (*s)[0] != "\"" {
 			if len(*s) == 0 {
 				return Error{"Missing end quote"}
