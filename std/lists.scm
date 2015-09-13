@@ -48,6 +48,18 @@
 
 (define some? (lambda (pred li) (if (empty? li) #f (if (pred (car li)) #t (some? pred (cdr li))))))
 
+(define take (lambda (li k)
+	;if the list is empty but we're not done taking, return an error
+	(if (and (empty? li) (> k 0))
+	  (error "take: Attempt to take more than length of list.")
+	  ;otherwise if k is 0, return an empty list and stop recursing
+	  (if (= k 0)
+	    '()
+	    (begin
+	      (define lt (take (cdr li) (- k 1)))
+	      ;if taking on the remaining tail returns an error, return that error.
+	      (if (error? lt) lt (append (list (car li)) lt)))))))
+
 (define zip (lambda lis (apply map list lis)))
 
 ;Because map runs in order in this implementation, map and for-each are equivalent.
