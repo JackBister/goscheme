@@ -48,6 +48,23 @@
 
 (define some? (lambda (pred li) (if (empty? li) #f (if (pred (car li)) #t (some? pred (cdr li))))))
 
+;Splits a list on any member satisfying pred.
+;Returns a list of sublists that are contained between those members.
+(define split (lambda (pred li)
+	(if (empty? li) '()
+	  (begin
+	    ;split-help returns the first index that satisfies pred
+	    ;it's pretty similar to list-index in SRFI-1 but returns (length li) instead of false
+	    ;if nothing in the list satisfies pred
+	    (define split-help (lambda (pred li k)
+				 (if (empty? li) k
+				   (if (pred (car li)) k (split-help pred (cdr li) (+ k 1))))))
+	    ;findex is the index of the first list member satisfying pred
+	    (define findex (split-help pred li 0))
+	    ;take findex elements from list, append the resulting list to the result of calling split
+	    ;on the rest of the list after the element at findex.
+	    (append (list (take li findex)) (split pred (cdr (list-tail li findex))))))))
+
 (define take (lambda (li k)
 	;if the list is empty but we're not done taking, return an error
 	(if (and (empty? li) (> k 0))
