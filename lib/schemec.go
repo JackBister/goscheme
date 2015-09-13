@@ -48,9 +48,11 @@ func (e *Environment) copy() Environment {
 }
 
 var GlobalEnv Environment
-var wsReplacer, _ = regexp.Compile("\t|\n|\r|;.*?\n")
+var wsReplacer, _ = regexp.Compile("\t|\n|\r")
 
 func Tokenize(s string) []string {
+	commentReplacer, _ := regexp.Compile(";.*?\n")
+	s = commentReplacer.ReplaceAllString(s, "")
 	s = wsReplacer.ReplaceAllString(s, "")
 	ss := strings.Split(strings.Replace(strings.Replace(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), "'", " ' ", -1), "\"", " \" ", -1), " ")
 	r := make([]string, 0)
