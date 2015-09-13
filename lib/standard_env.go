@@ -21,53 +21,91 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"runtime"
+//	"runtime"
 	"strconv"
 	"strings"
-	"sync"
+//	"sync"
 	"time"
 )
 
-func StandardEnv() map[string]Expr {
-	return map[string]Expr {
+func StandardEnv() Environment {
+	e := Environment{ map[string]Expr {
 		"#f": Boolean(false),
 		"#t": Boolean(true),
-		"+": BuiltIn{add},
-		"-": BuiltIn{sub},
-		"*": BuiltIn{mul},
-		"/": BuiltIn{div},
-		">": BuiltIn{gt},
-		"<": BuiltIn{lt},
-		">=": BuiltIn{ge},
-		"<=": BuiltIn{le},
-		"=": BuiltIn{eq},
-		"<-": BuiltIn{send},
-		"->": BuiltIn{receive},
-		"abs": BuiltIn{abs},
-		"append": BuiltIn{sappend},
-		"apply": BuiltIn{apply},
-		"begin": BuiltIn{begin},
-		"car": BuiltIn{car},
-		"cdr": BuiltIn{cdr},
-		"chan": BuiltIn{schan},
-		"equal?": BuiltIn{eq},
-		"length": BuiltIn{length},
-		"list": BuiltIn{list},
-		"list?": BuiltIn{list_},
-		"load": BuiltIn{load},
-		"map": BuiltIn{smap},
-		"max": BuiltIn{max},
-		"min": BuiltIn{min},
-		"not": BuiltIn{not},
-		"null?": BuiltIn{null_},
-		"number?": BuiltIn{number_},
-		"pmap": BuiltIn{pmap},
-		"procedure?": BuiltIn{procedure_},
-		"round": BuiltIn{round},
-		"sleep": BuiltIn{sleep},
-		"symbol?": BuiltIn{symbol_},
-		//TODO: cons, eq?
+		"+": BuiltIn{"+", 0, -1, add},
+		"-": BuiltIn{"-", 1, -1, sub},
+		"*": BuiltIn{"*", 0, -1, mul},
+		"/": BuiltIn{"/", 1, -1, div},
+		">": BuiltIn{">", 2, -1, gt},
+		"<": BuiltIn{"<", 2, -1, lt},
+		">=": BuiltIn{">=", 2, -1, ge},
+		"<=": BuiltIn{"<=", 2, -1, le},
+		"=": BuiltIn{"=", 2, -1, eq},
+		"<-": BuiltIn{"<-", 2, 2, send},
+		"->": BuiltIn{"->", 1, 1, receive},
+		"abs": BuiltIn{"abs", 1, 1, abs},
+		"acos": BuiltIn{"acos", 1, 1, acos},
+		"append": BuiltIn{"append", 2, -1, sappend},
+		"apply": BuiltIn{"apply", 2, -1, apply},
+		"asin": BuiltIn{"asin", 1, 1, asin},
+		"atan": BuiltIn{"atan", 1, 1, atan},
+		"begin": BuiltIn{"begin", 0, -1, begin},
+		"close": BuiltIn{"close", 1, 1, sclose},
+		"car": BuiltIn{"car", 1, 1, car},
+		"cdr": BuiltIn{"cdr", 1, 1, cdr},
+		"chan": BuiltIn{"chan", 0, 0, schan},
+		"cons": BuiltIn{"cons", 2, 2, cons},
+		"cos": BuiltIn{"cos", 1, 1, cos},
+		"exp": BuiltIn{"exp", 1, 1, exp},
+		"eq?": BuiltIn{"eq?", 2, 2, eqv},
+		"equal?": BuiltIn{"equal?", 2, 2, eq},
+		"eqv?": BuiltIn{"eqv?", 2, 2, eqv},
+		"error": BuiltIn{"error", 1, 1, serror},
+		"length": BuiltIn{"length", 1, 1, length},
+		"list": BuiltIn{"list", 0, -1, list},
+		"list?": BuiltIn{"list?", 1, 1, list_},
+		"list->string": BuiltIn{"list->string", 1, 1, listtostr},
+		"load": BuiltIn{"load", 1, 1, load},
+		"log": BuiltIn{"log", 1, 1, log},
+		"max": BuiltIn{"max", 2, -1, max},
+		"min": BuiltIn{"min", 2, -1, min},
+		"modulo": BuiltIn{"modulo", 2, 2, modulo},
+		"not": BuiltIn{"not", 1, 1, not},
+		"null?": BuiltIn{"null?", 1, 1, null_},
+		"number?": BuiltIn{"number?", 1, 1, number_},
+		//"pmap": BuiltIn{"pmap", 2, -1, pmap},
+		"procedure?": BuiltIn{"procedure?", 1, 1, procedure_},
+		"remainder": BuiltIn{"remainder", 2, 2, remainder},
+		"round": BuiltIn{"round", 1, 1, round},
+		"sin": BuiltIn{"sin", 1, 1, sin},
+		"sleep": BuiltIn{"sleep", 1, 1, sleep},
+		"string->list": BuiltIn{"string->list", 1, 1, strtolist},
+		"symbol?": BuiltIn{"symbol?", 1, 1, symbol_},
+		"tan": BuiltIn{"tan", 1, 1, tan},
+		//TODO: eq?
+	}, nil }
+	dirc, err := ioutil.ReadDir("std")
+	if err != nil {
+		panic("Error while loading standard library")
 	}
+	for _, fi := range dirc {
+		if !strings.HasSuffix(fi.Name(), ".scm") {
+			continue
+		}
+		in, err := ioutil.ReadFile("std/" + fi.Name())
+		if err != nil {
+			panic("Error while loading standard library")
+		}
+		ins := string(in)
+		t := Tokenize(ins)
+		for len(t) != 0 {
+			r := Eval(Parse(&t, true), e)
+			if s, ok := r.(Symbol); !ok || string(s) != "" {
+				fmt.Println(r)
+			}
+		}
+	}
+	return e
 }
 
 func add(e Environment, args ...Expr) Expr {
@@ -82,9 +120,6 @@ func add(e Environment, args ...Expr) Expr {
 }
 
 func sub(e Environment, args ...Expr) Expr {
-	if len(args) == 0 {
-		return Error{"-: Too few arguments (at least 1)."}
-	}
 	if _, ok := args[0].(Number); !ok {
 		return Error{"-: Argument 1 is not a number."}
 	}
@@ -112,9 +147,6 @@ func mul(e Environment, args ...Expr) Expr {
 }
 
 func div(e Environment, args ...Expr) Expr {
-	if len(args) == 0 {
-		return Error{"/: Too few arguments (at least 1)."}
-	}
 	if len(args) == 1 {
 		if _, ok := args[0].(Number); !ok {
 			return Error{"/: Argument 1 is not a number."}
@@ -132,109 +164,7 @@ func div(e Environment, args ...Expr) Expr {
 
 }
 
-func gt(e Environment, args ...Expr) Expr {
-	if len(args) < 2 {
-		return Error{">: Too few arguments (at least 2)."}
-	}
-	if _, ok := args[0].(Number); !ok {
-		return Error{">: Argument 1 is not a number."}
-	}
-	last := unwrapNumber(args[0])
-	for i := 1; i < len(args); i++ {
-		if _, ok := args[i].(Number); !ok {
-			return Error{">: Argument " + strconv.Itoa(i+1) + " is not a number."}
-		}
-		if unwrapNumber(args[i]) >= last {
-			return Boolean(false)
-		}
-	}
-	return Boolean(true)
-}
-
-func lt(e Environment, args ...Expr) Expr {
-	if len(args) < 2 {
-		return Error{"<: Too few arguments (at least 2)."}
-	}
-	if _, ok := args[0].(Number); !ok {
-		return Error{"<: Argument 1 is not a number."}
-	}
-	last := unwrapNumber(args[0])
-	for i := 1; i < len(args); i++ {
-		if _, ok := args[i].(Number); !ok {
-			return Error{"<: Argument " + strconv.Itoa(i+1) + " is not a number."}
-		}
-		if unwrapNumber(args[i]) <= last {
-			return Boolean(false)
-		}
-	}
-	return Boolean(true)
-}
-
-func ge(e Environment, args ...Expr) Expr {
-	if len(args) < 2 {
-		return Error{">=: Too few arguments (at least 2)."}
-	}
-	if _, ok := args[0].(Number); !ok {
-		return Error{">=: Argument 1 is not a number."}
-	}
-	last := unwrapNumber(args[0])
-	for i := 1; i < len(args); i++ {
-		if _, ok := args[i].(Number); !ok {
-			return Error{">=: Argument " + strconv.Itoa(i+1) + " is not a number."}
-		}
-		if unwrapNumber(args[i]) > last {
-			return Boolean(false)
-		}
-	}
-	return Boolean(true)
-}
-
-func le(e Environment, args ...Expr) Expr {
-	if len(args) < 2 {
-		return Error{"<=: Too few arguments (at least 2)."}
-	}
-	if _, ok := args[0].(Number); !ok {
-		return Error{"<=: Argument 1 is not a number."}
-	}
-	last := unwrapNumber(args[0])
-	for i := 1; i < len(args); i++ {
-		if _, ok := args[i].(Number); !ok {
-			return Error{"<=: Argument " + strconv.Itoa(i+1) + " is not a number."}
-		}
-		if unwrapNumber(args[i]) < last {
-			return Boolean(false)
-		}
-	}
-	return Boolean(true)
-}
-
-func eq(e Environment, args ...Expr) Expr {
-	if len(args) < 2 {
-		return Error{"=: Too few arguments (at least 2)."}
-	}
-	if _, ok := args[0].(Number); !ok {
-		return Error{"=: Argument 1 is not a number."}
-	}
-	last := unwrapNumber(args[0])
-	for i := 1; i < len(args); i++ {
-		if _, ok := args[i].(Number); !ok {
-			return Error{"=: Argument " + strconv.Itoa(i+1) + " is not a number."}
-		}
-		if unwrapNumber(args[i]) != last {
-			return Boolean(false)
-		}
-	}
-	return Boolean(true)
-
-}
-
 func abs(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"abs: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"abs: Too few arguments (need 1)."}
-	}
 	if _, ok := args[0].(Number); !ok {
 		return Error{"abs: Argument 1 is not a number."}
 	}
@@ -243,9 +173,6 @@ func abs(e Environment, args ...Expr) Expr {
 }
 
 func sappend(e Environment, args ...Expr) Expr {
-	if len(args) < 2 {
-		return Error{"append: Too few arguments (at least 2)."}
-	}
 	ret := make(ExprList, 0)
 	for i, arg := range args {
 		if _, ok := arg.(ExprList); !ok {
@@ -258,27 +185,18 @@ func sappend(e Environment, args ...Expr) Expr {
 }
 
 func apply(e Environment, args ...Expr) Expr {
-	if len(args) < 2 {
-		return Error{"apply: Too few arguments (at least 2)."}
-	}
-	//TODO: Errors
-	//For example. (apply + 1 (list 1 2)) is a valid call
 	proc := args[0].(Proc)
-	argl := args[1].(ExprList)
-	return proc.eval(e, argl...)
+	argn := args[1:len(args)-1]
+	argl := args[len(args)-1].(ExprList)
+	return proc.eval(e, append(argn, argl...)...)
 }
 
+//TODO: 0 args => return the begin proc
 func begin(e Environment, args ...Expr) Expr {
 	return ExprList(args)[len(args)-1]
 }
 
 func car(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"car: Too many arguments (need 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"car: Too few arguments (need 1)."}
-	}
 	if _, ok := args[0].(ExprList); !ok {
 		return Error{"car: Argument 1 is not a list."}
 	}
@@ -290,12 +208,6 @@ func car(e Environment, args ...Expr) Expr {
 }
 
 func cdr(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"cdr: Too many arguments (need 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"cdr: Too few arguments (need 1)."}
-	}
 	if _, ok := args[0].(ExprList); !ok {
 		return Error{"cdr: Argument 1 is not a list."}
 	}
@@ -306,13 +218,27 @@ func cdr(e Environment, args ...Expr) Expr {
 	return eList[1:]
 }
 
+func cons(e Environment, args ...Expr) Expr {
+	return ExprList{args[0], args[1]}
+}
+
+func exp(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Number); !ok {
+		return Error{"exp: Argument 1 is not a number."}
+	} else {
+		return Number(math.Exp(float64(v)))
+	}
+}
+
+func serror(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(String); !ok {
+		return Error{"error: Argument 1 is not a string."}
+	} else {
+		return Error{string(v)}
+	}
+}
+
 func length(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"length: Too many arguments (need 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"length: Too few arguments (need 1)."}
-	}
 	if _, ok := args[0].(ExprList); !ok {
 		return Error{"length: Argument 1 is not a list."}
 	}
@@ -328,49 +254,30 @@ func list(e Environment, args ...Expr) Expr {
 }
 
 func list_(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"list?: Too many arguments (need 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"list?: Too few arguments (need 1)."}
-	}
 	if _, ok := args[0].(ExprList); !ok {
 		return Boolean(false)
 	}
 	return Boolean(true)
 }
 
-func smap(e Environment, args ...Expr) Expr {
-	if len(args) > 2 {
-		return Error{"map: Too many arguments (need 2)."}
+func listtostr(e Environment, args ...Expr) Expr {
+	if _, ok := args[0].(ExprList); !ok {
+		return Error{"list->string: Argument 1 is not a list."}
 	}
-	if len(args) < 0 {
-		return Error{"map: Too few arguments (need 2)."}
-	}
-	if _, ok := args[0].(Proc); !ok {
-		return Error{"map: Argument 1 is not a function."}
-	}
-	if _, ok := args[1].(ExprList); !ok {
-		return Error{"map: Argument 2 is not a list."}
-	}
-	proc := args[0].(Proc)
-	eList := args[1].(ExprList)
-	ret := make(ExprList, 0)
-	for _, exp := range eList {
-		nEnv := e.copy()
-		nEnv.Parent = &e
-		if uprocp, ok := proc.(UserProc); ok {
-			nEnv.Local[unwrapSymbol(uprocp.params[0])] = exp
+	l := args[0].(ExprList)
+	s := make([]rune, len(l))
+	for i, v := range l {
+		if _, ok2 := v.(Character); !ok2 {
+			return Error{"list->string: All members of list must be characters."}
 		}
-		ret = append(ret, proc.eval(nEnv, exp))
+		//Icky, but cannot cast directly to rune because it's not an Expr.
+		c := v.(Character)
+		s[i] = rune(c)
 	}
-	return ret
+	return String(s)
 }
 
 func max(e Environment, args ...Expr) Expr {
-	if len(args) < 2 {
-		return Error{"max: Too few arguments (at least 2)."}
-	}
 	max := math.Inf(-1)
 	eList := args[0].(ExprList)
 	for i, arg := range eList {
@@ -386,9 +293,6 @@ func max(e Environment, args ...Expr) Expr {
 }
 
 func min(e Environment, args ...Expr) Expr {
-	if len(args) < 2 {
-		return Error{"min: Too few arguments (at least 2)."}
-	}
 	min := math.Inf(1)
 	eList := args[0].(ExprList)
 	for i, arg := range eList {
@@ -404,13 +308,6 @@ func min(e Environment, args ...Expr) Expr {
 }
 
 func not(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"not: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"not: Too few arguments (need 1)."}
-	}
-
 	if _, ok := args[0].(Boolean); !ok {
 		if args[0] != nil {
 			return Boolean(false)
@@ -421,12 +318,6 @@ func not(e Environment, args ...Expr) Expr {
 }
 
 func null_(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"null?: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"null?: Too few arguments (need 1)."}
-	}
 	if eList, ok := args[0].(ExprList); ok {
 		if len(eList) == 0 {
 			return Number(1)
@@ -436,12 +327,6 @@ func null_(e Environment, args ...Expr) Expr {
 }
 
 func number_(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"number?: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"number?: Too few arguments (need 1)."}
-	}
 	if _, ok := args[0].(Number); !ok {
 		return Boolean(false)
 	}
@@ -449,12 +334,6 @@ func number_(e Environment, args ...Expr) Expr {
 }
 
 func procedure_(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"procedure?: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"procedure?: Too few arguments (need 1)."}
-	}
 	if _, ok := args[0].(Proc); ok {
 		return Boolean(true)
 	}
@@ -462,12 +341,6 @@ func procedure_(e Environment, args ...Expr) Expr {
 }
 
 func round(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"round: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"round: Too few arguments (need 1)."}
-	}
 	if _, ok := args[0].(Number); !ok {
 		return Error{"round: Argument 1 is not a number."}
 	}
@@ -477,12 +350,6 @@ func round(e Environment, args ...Expr) Expr {
 }
 
 func symbol_(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"symbol?: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"symbol?: Too few arguments (need 1)."}
-	}
 	_, ok := args[0].(Symbol)
 	return Boolean(ok)
 }
@@ -492,12 +359,6 @@ func schan(e Environment, args ...Expr) Expr {
 }
 
 func sclose(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"close: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"close: Too few arguments (need 1)."}
-	}
 	if c, ok := args[0].(Channel); !ok {
 		return Error{"close: Argument 1 is not a channel."}
 	} else {
@@ -506,17 +367,18 @@ func sclose(e Environment, args ...Expr) Expr {
 	return Boolean(true)
 }
 
+//TODO: Could allow loading multiple files in one call.
 func load(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"load: Too many arguments (max 1)."}
+	var s string
+	if v, ok := args[0].(Symbol); !ok {
+		if v2, ok2 := args[0].(String); !ok2 {
+			return Error{"load: Argument 1 is not a string"}
+		} else {
+			s = string(v2)
+		}
+	} else {
+		s = string(v)
 	}
-	if len(args) == 0 {
-		return Error{"load: Too few arguments (need 1)."}
-	}
-	if _, ok := args[0].(Symbol); !ok {
-		return Error{"load: Argument 1 is not a symbol"}
-	}
-	s := unwrapSymbol(args[0])
 	fmt.Println("Reading file " + s + "...")
 	in, err := ioutil.ReadFile(s)
 	if err != nil && !strings.HasSuffix(s, ".scm") {
@@ -528,12 +390,9 @@ func load(e Environment, args ...Expr) Expr {
 		}
 	}
 	ins := string(in)
-	ins = strings.Replace(ins, "\t", "", -1)
-	ins = strings.Replace(ins, "\n", "", -1)
-	ins = strings.Replace(ins, "\r", "", -1)
 	t := Tokenize(ins)
 	for len(t) != 0 {
-		r := Eval(Parse(&t), GlobalEnv)
+		r := Eval(Parse(&t, true), GlobalEnv)
 		if s, ok := r.(Symbol); !ok || string(s) != "" {
 			fmt.Println(r)
 		}
@@ -541,13 +400,15 @@ func load(e Environment, args ...Expr) Expr {
 	return Boolean(true)
 }
 
+func log(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Number); !ok {
+		return Error{"log: Argument 1 is not a number"}
+	} else {
+		return Number(math.Log(float64(v)))
+	}
+}
+
 func receive(e Environment, args ... Expr) Expr {
-	if len(args) > 1 {
-		return Error{"->: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"->: Too few arguments (need 1)."}
-	}
 	if c, ok := args[0].(Channel); !ok {
 		return Error{"->: Argument 1 is not a channel."}
 	} else {
@@ -556,27 +417,20 @@ func receive(e Environment, args ... Expr) Expr {
 }
 
 func send(e Environment, args ...Expr) Expr {
-	if len(args) > 2 {
-		return Error{"<-: Too many arguments (max 2)."}
-	}
-	if len(args) < 2 {
-		return Error{"<-: Too few arguments (need 2)."}
-	}
 	if c, ok := args[0].(Channel); !ok {
 		return Error{"<-: Argument 1 is not a channel."}
 	} else {
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("<-: Attempt to send on a closed channel")
+			}
+		}()
 		c <- args[1]
 	}
 	return args[1]
 }
 
 func sleep(e Environment, args ...Expr) Expr {
-	if len(args) > 1 {
-		return Error{"sleep: Too many arguments (max 1)."}
-	}
-	if len(args) == 0 {
-		return Error{"sleep: Too few arguments (need 1)."}
-	}
 	if _, ok := args[0].(Number); !ok {
 		return Error{"sleep: Argument 1 is not a number."}
 	}
@@ -585,13 +439,20 @@ func sleep(e Environment, args ...Expr) Expr {
 	return Boolean(true)
 }
 
+func strtolist(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(String); !ok {
+		return Error{"string->list: Argument 1 is not a list"}
+	} else {
+		r := make([]Expr, len(v))
+		for i, c := range v {
+			r[i] = Character(c)
+		}
+		return ExprList(r)
+	}
+}
+
+/*
 func pmap(e Environment, args ...Expr) Expr {
-	if len(args) > 2 {
-		return Error{"pmap: Too many arguments (need 2)."}
-	}
-	if len(args) < 0 {
-		return Error{"pmap: Too few arguments (need 2)."}
-	}
 	if _, ok := args[0].(Proc); !ok {
 		return Error{"pmap: Argument 1 is not a function."}
 	}
@@ -628,3 +489,4 @@ func pmap(e Environment, args ...Expr) Expr {
 	wg.Wait()
 	return ret
 }
+*/

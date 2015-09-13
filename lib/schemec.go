@@ -19,65 +19,11 @@ package goscheme
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
-
-type Expr interface {
-	isExpr()
-}
-
-type Number float64
-func (n Number) isExpr() {}
-func unwrapNumber(n Expr) float64 {
-	return float64(n.(Number))
-}
-
-type Symbol string
-func (s Symbol) isExpr() {}
-func unwrapSymbol(s Expr) string {
-	return string(s.(Symbol))
-}
-
-type Boolean bool
-func (b Boolean) isExpr() {}
-
-type Channel chan Expr
-func (c Channel) isExpr() {}
-
-type ExprList []Expr
-func (el ExprList) isExpr() {}
-
-type Func func(...Expr) Expr
-func (a Func) isExpr() {}
-
-type Proc interface {
-	eval(Environment, ...Expr) Expr
-}
-
-type UserProc struct {
-	params ExprList
-	body Expr
-}
-func (u UserProc) eval(e Environment, args ...Expr) Expr {
-	return Eval(u.body, e)
-}
-func (u UserProc) isExpr() {}
-
-type BuiltIn struct {
-	fn func(Environment, ...Expr) Expr
-}
-func (b BuiltIn) eval(e Environment, args ...Expr) Expr {
-	return b.fn(e, args...)
-}
-func (b BuiltIn) isExpr() {}
-
-type Error struct {
-	s string
-}
-func (e Error) Error() string { return e.s }
-func (e Error) isExpr() {}
 
 type Environment struct {
 	Local map[string]Expr
@@ -101,9 +47,11 @@ func (e *Environment) copy() Environment {
 }
 
 var GlobalEnv Environment
+var wsReplacer,_ = regexp.Compile("\t|\n|\r|;.*?\n")
 
 func Tokenize(s string) []string {
-	ss := strings.Split(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), " ")
+	s = wsReplacer.ReplaceAllString(s, "")
+	ss := strings.Split(strings.Replace(strings.Replace(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), "'", " ' ", -1), "\"", " \" ", -1), " ")
 	r := make([]string, 0)
 	for _, e := range ss {
 		if e != " " && e != "" {
@@ -113,16 +61,36 @@ func Tokenize(s string) []string {
 	return r
 }
 
-func Parse(s *[]string) Expr {
+func Parse(s *[]string, allowblock bool) Expr {
 	if len(*s) == 0 {
 		return Error{"Unexpected EOF."}
 	}
 	t := (*s)[0]
 	*s = (*s)[1:]
+	if t == "'" {
+		if allowblock {
+			return EvalBlock{Parse(s, false)}
+		} else {
+			return Parse(s, allowblock)
+		}
+	}
+	if t == "\"" {
+		ss := (*s)[0]
+		*s = (*s)[1:]
+		for (*s)[0] != "\"" {
+			if len(*s) == 0 {
+				return Error{"Missing end quote"}
+			}
+			ss = strings.Join([]string{ss, (*s)[0]}, " ")
+			*s = (*s)[1:]
+		}
+		(*s) = (*s)[1:]
+		return String(ss)
+	}
 	if t == "(" {
 		l := make(ExprList, 0)
 		for (*s)[0] != ")" {
-			l = append(l, Parse(s))
+			l = append(l, Parse(s, allowblock))
 			if len(*s) == 0 {
 				return Error{"Missing ')'"}
 			}
@@ -138,6 +106,10 @@ func Parse(s *[]string) Expr {
 func Eval(e Expr, env Environment) Expr {
 	if bool(symbol_(env, e).(Boolean)) {
 		return env.find(unwrapSymbol(e))[unwrapSymbol(e)]
+	} else if eb, ok := e.(EvalBlock); ok {
+		return eb.e
+	} else if v, ok := e.(String); ok {
+		return v
 	} else if !bool(list_(env, e).(Boolean)) {
 		return e
 	} else if el := e.(ExprList); bool(symbol_(env, el[0]).(Boolean)) {
@@ -175,7 +147,20 @@ func Eval(e Expr, env Environment) Expr {
 			for k, v := range env.Local {
 				newenv.Local[k] = v
 			}
-			return UserProc{el[1].(ExprList), el[2]}
+			if l, ok := el[1].(ExprList); ok {
+				for i, v := range l {
+					if v == Symbol(".") {
+						if i != len(l)-2 {
+							return Error{"Multiple variables after '.' not allowed!"}
+						}
+						//append(...) removes the . from the list of params
+						return UserProc{true, append(l[:i], l[i+1:]...), el[2]}
+					}
+				}
+				return UserProc{false, el[1].(ExprList), el[2]}
+			} else if v, ok := el[1].(Symbol); ok {
+				return UserProc{true, ExprList{v}, el[2]}
+			}
 		} else if s0 == "go" {
 			c := make(Channel)
 			go func(c chan Expr) {
@@ -196,11 +181,6 @@ func Eval(e Expr, env Environment) Expr {
 			if procp, ok2 := proc.(Proc); ok2 {
 				nEnv := env.copy()
 				nEnv.Parent = &env
-				if uprocp, ok3 := proc.(UserProc); ok3 {
-					for i, par := range uprocp.params {
-						nEnv.Local[unwrapSymbol(par)] = args[i]
-					}
-				}
 				return procp.eval(nEnv, args...)
 			} else {
 				//TODO
@@ -212,6 +192,9 @@ func Eval(e Expr, env Environment) Expr {
 }
 
 func atom(s string) Expr {
+	if strings.HasPrefix(s, "#\\") {
+		return decodeCharacter(s[2:])
+	}
 	if i, err := strconv.Atoi(s); err == nil {
 		return Number((i))
 	}

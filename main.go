@@ -32,7 +32,7 @@ func main() {
 	interactive := flag.Bool("i", false, "Enters interactive mode after executing the given files. If no files are given this is the default.")
 	flag.Parse()
 	runtime.GOMAXPROCS(*maxp)
-	goscheme.GlobalEnv = goscheme.Environment{goscheme.StandardEnv(), nil}
+	goscheme.GlobalEnv = goscheme.StandardEnv()
 	for _, a := range flag.Args() {
 		eval("(load (quote " + a + "))")
 	}
@@ -53,7 +53,7 @@ func readLoop() {
 
 func eval(s string) {
 	t := goscheme.Tokenize(s)
-	p := goscheme.Parse(&t)
+	p := goscheme.Parse(&t, true)
 	r := goscheme.Eval(p, goscheme.GlobalEnv)
 	if f, ok := r.(goscheme.Number); ok {
 		fs := strconv.FormatFloat(float64(f), 'f', -1, 64)
