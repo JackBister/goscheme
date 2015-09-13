@@ -125,6 +125,9 @@ func sub(e Environment, args ...Expr) Expr {
 		return Error{"-: Argument 1 is not a number."}
 	}
 	ret := unwrapNumber(args[0])
+	if len(args) == 1 {
+		return Number(-ret)
+	}
 	for i := 1; i < len(args); i++ {
 		if _, ok := args[i].(Number); !ok {
 			return Error{"-: Argument " + strconv.Itoa(i+1) + " is not a number."}
