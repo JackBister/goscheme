@@ -67,6 +67,7 @@ func Tokenize(s string) []string {
 		}
 		if r == ';' {
 			if i != 0 && s[i-1] == '\\' {
+				b.WriteRune(r)
 				continue
 			}
 			afterComment = true
