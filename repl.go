@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/carmark/pseudo-terminal-go/terminal"
+	"github.com/jackbister/goscheme/lib/terminal"
 	"os"
 )
 
