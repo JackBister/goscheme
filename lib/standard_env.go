@@ -223,6 +223,9 @@ func cdr(e Environment, args ...Expr) Expr {
 }
 
 func cons(e Environment, args ...Expr) Expr {
+	if l, ok := args[1].(ExprList); ok {
+		return append(ExprList{args[0]}, l...)
+	}
 	return ExprList{args[0], args[1]}
 }
 
