@@ -452,7 +452,7 @@ func sleep(e Environment, args ...Expr) Expr {
 
 func strtolist(e Environment, args ...Expr) Expr {
 	if v, ok := args[0].(String); !ok {
-		return Error{"string->list: Argument 1 is not a list"}
+		return Error{"string->list: Argument 1 is not a string."}
 	} else {
 		r := make([]Expr, len(v))
 		for i, c := range v {
