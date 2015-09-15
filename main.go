@@ -18,15 +18,22 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
+	"github.com/carmark/pseudo-terminal-go/terminal"
 	"github.com/jackbister/goscheme/lib"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 )
+
+var t *terminal.Terminal
+
+var replFuncs = map[string]func(){
+	":q":    func() { t.ReleaseFromStdInOut(); os.Exit(0) },
+	":quit": func() { t.ReleaseFromStdInOut(); os.Exit(0) },
+}
 
 func main() {
 	maxp := flag.Int("cores", runtime.NumCPU(), "Sets the number of CPU cores that the interpreter may use. If not given, all available cores will be used.")
@@ -43,12 +50,16 @@ func main() {
 }
 
 func readLoop() {
-	reader := bufio.NewReader(os.Stdin)
+	t, _ = terminal.NewWithStdInOut()
 	for {
 		fmt.Print(">>")
-		in, _ := reader.ReadString('\n')
+		in, _ := t.ReadLine()
 		in = strings.Trim(in, " \r\n")
-		eval(in)
+		if replFuncs[in] != nil {
+			replFuncs[in]()
+		} else {
+			eval(in)
+		}
 	}
 }
 
