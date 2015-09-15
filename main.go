@@ -1,5 +1,3 @@
-// +build !windows
-
 /*
    goscheme - a Lisp interpreter in Go
    Copyright (C) 2015 Jack Bister
@@ -23,20 +21,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/carmark/pseudo-terminal-go/terminal"
 	"github.com/jackbister/goscheme/lib"
-	"os"
 	"runtime"
 	"strconv"
 	"strings"
 )
-
-var t *terminal.Terminal
-
-var replFuncs = map[string]func(){
-	":q":    func() { t.ReleaseFromStdInOut(); os.Exit(0) },
-	":quit": func() { t.ReleaseFromStdInOut(); os.Exit(0) },
-}
 
 func main() {
 	maxp := flag.Int("cores", runtime.NumCPU(), "Sets the number of CPU cores that the interpreter may use. If not given, all available cores will be used.")
@@ -53,10 +42,10 @@ func main() {
 }
 
 func readLoop() {
-	t, _ = terminal.NewWithStdInOut()
+	replStart()
 	for {
 		fmt.Print(">>")
-		in, _ := t.ReadLine()
+		in := readLine()
 		in = strings.Trim(in, " \r\n")
 		if replFuncs[in] != nil {
 			replFuncs[in]()
