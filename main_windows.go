@@ -1,5 +1,3 @@
-// +build !windows
-
 /*
    goscheme - a Lisp interpreter in Go
    Copyright (C) 2015 Jack Bister
@@ -17,26 +15,18 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
-	"github.com/carmark/pseudo-terminal-go/terminal"
 	"github.com/jackbister/goscheme/lib"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 )
-
-var t *terminal.Terminal
-
-var replFuncs = map[string]func(){
-	":q":    func() { t.ReleaseFromStdInOut(); os.Exit(0) },
-	":quit": func() { t.ReleaseFromStdInOut(); os.Exit(0) },
-}
 
 func main() {
 	maxp := flag.Int("cores", runtime.NumCPU(), "Sets the number of CPU cores that the interpreter may use. If not given, all available cores will be used.")
@@ -53,16 +43,12 @@ func main() {
 }
 
 func readLoop() {
-	t, _ = terminal.NewWithStdInOut()
+	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print(">>")
-		in, _ := t.ReadLine()
+		in, _ := reader.ReadString('\n')
 		in = strings.Trim(in, " \r\n")
-		if replFuncs[in] != nil {
-			replFuncs[in]()
-		} else {
-			eval(in)
-		}
+		eval(in)
 	}
 }
 
