@@ -18,8 +18,8 @@
 package goscheme
 
 import (
+	"bytes"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -48,17 +48,62 @@ func (e *Environment) copy() Environment {
 }
 
 var GlobalEnv Environment
-var wsReplacer, _ = regexp.Compile("\t|\n|\r")
 
 func Tokenize(s string) []string {
-	commentReplacer, _ := regexp.Compile(";.*?\n")
-	s = commentReplacer.ReplaceAllString(s, "")
-	s = wsReplacer.ReplaceAllString(s, "")
-	ss := strings.Split(strings.Replace(strings.Replace(strings.Replace(strings.Replace(s, ")", " ) ", -1), "(", " ( ", -1), "'", " ' ", -1), "\"", " \" ", -1), " ")
+	ignoreString := "\t\n\r"
+
+	afterComment := false
+	inQuotes := false
+	var b bytes.Buffer
+	for i, r := range s {
+		if r == '"' {
+			inQuotes = !inQuotes
+			b.WriteRune(r)
+			continue
+		}
+		if inQuotes {
+			b.WriteRune(r)
+			continue
+		}
+		if r == ';' {
+			if i != 0 && s[i-1] == '\\' {
+				continue
+			}
+			afterComment = true
+			continue
+		}
+		if r == '\n' && afterComment {
+			afterComment = false
+		}
+		if afterComment {
+			continue
+		}
+		if strings.ContainsRune(ignoreString, r) {
+			continue
+		}
+		if r == '\'' || r == '(' || r == ')' {
+			b.WriteString(" " + string(r) + " ")
+			continue
+		}
+		b.WriteRune(r)
+	}
+	ss := strings.Split(b.String(), " ")
 	r := make([]string, 0)
-	for _, e := range ss {
-		if e != " " && e != "" {
-			r = append(r, e)
+	for i := 0; i < len(ss); i++ {
+		if strings.HasPrefix(ss[i], "\"") {
+			toJoin := make([]string, 0)
+			for j := 0; i+j < len(ss); j++ {
+				toJoin = append(toJoin, ss[i+j])
+				if strings.HasSuffix(ss[i+j], "\"") {
+					break
+				}
+			}
+			r = append(r, strings.Join(toJoin, " "))
+			i += len(toJoin) - 1
+			continue
+		}
+		if ss[i] != " " && ss[i] != "" {
+			r = append(r, ss[i])
 		}
 	}
 	return r
@@ -77,24 +122,11 @@ func Parse(s *[]string, allowblock bool) Expr {
 			return Parse(s, allowblock)
 		}
 	}
-	if t == "\"" {
-		ss := (*s)[0]
-		*s = (*s)[1:]
-		if ss == "\"" {
-			return String("")
-		}
-		if len(*s) == 0 {
+	if strings.HasPrefix(t, "\"") {
+		if t[len(t)-1] != '"' {
 			return Error{"Missing end quote"}
 		}
-		for (*s)[0] != "\"" {
-			if len(*s) == 0 {
-				return Error{"Missing end quote"}
-			}
-			ss = strings.Join([]string{ss, (*s)[0]}, " ")
-			*s = (*s)[1:]
-		}
-		(*s) = (*s)[1:]
-		return String(ss)
+		return String(t[1 : len(t)-1])
 	}
 	if t == "(" {
 		l := make(ExprList, 0)
