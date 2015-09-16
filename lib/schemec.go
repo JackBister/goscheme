@@ -154,7 +154,7 @@ func Eval(e Expr, env Environment) Expr {
 		return v
 	} else if !bool(list_(env, e).(Boolean)) {
 		return e
-	} else if el := e.(ExprList); bool(symbol_(env, el[0]).(Boolean)) {
+	} else if el := e.(ExprList); len(el) != 0 && bool(symbol_(env, el[0]).(Boolean)) {
 		if s0 := unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
 			return el[1]
 		} else if s0 == "if" {
