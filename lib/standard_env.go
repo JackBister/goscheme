@@ -18,9 +18,11 @@
 package goscheme
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"math"
+	"os"
 	//	"runtime"
 	"strconv"
 	"strings"
@@ -30,51 +32,64 @@ import (
 
 func StandardEnv() Environment {
 	e := Environment{map[string]Expr{
-		"#f":           Boolean(false),
-		"#t":           Boolean(true),
-		"+":            BuiltIn{"+", 0, -1, add},
-		"-":            BuiltIn{"-", 1, -1, sub},
-		"*":            BuiltIn{"*", 0, -1, mul},
-		"/":            BuiltIn{"/", 1, -1, div},
-		">":            BuiltIn{">", 2, -1, gt},
-		"<":            BuiltIn{"<", 2, -1, lt},
-		">=":           BuiltIn{">=", 2, -1, ge},
-		"<=":           BuiltIn{"<=", 2, -1, le},
-		"=":            BuiltIn{"=", 2, -1, eq},
-		"<-":           BuiltIn{"<-", 2, 2, send},
-		"->":           BuiltIn{"->", 1, 1, receive},
-		"acos":         BuiltIn{"acos", 1, 1, acos},
-		"append":       BuiltIn{"append", 2, -1, sappend},
-		"apply":        BuiltIn{"apply", 2, -1, apply},
-		"asin":         BuiltIn{"asin", 1, 1, asin},
-		"atan":         BuiltIn{"atan", 1, 1, atan},
-		"begin":        BuiltIn{"begin", 0, -1, begin},
-		"close":        BuiltIn{"close", 1, 1, sclose},
-		"car":          BuiltIn{"car", 1, 1, car},
-		"cdr":          BuiltIn{"cdr", 1, 1, cdr},
-		"chan":         BuiltIn{"chan", 0, 0, schan},
-		"cons":         BuiltIn{"cons", 2, 2, cons},
-		"cos":          BuiltIn{"cos", 1, 1, cos},
-		"exp":          BuiltIn{"exp", 1, 1, exp},
-		"eq?":          BuiltIn{"eq?", 2, 2, eqv},
-		"equal?":       BuiltIn{"equal?", 2, 2, eq},
-		"eqv?":         BuiltIn{"eqv?", 2, 2, eqv},
-		"error":        BuiltIn{"error", 1, 1, serror},
-		"error?":       BuiltIn{"error?", 1, 1, error_},
-		"length":       BuiltIn{"length", 1, 1, length},
-		"list":         BuiltIn{"list", 0, -1, list},
-		"list?":        BuiltIn{"list?", 1, 1, list_},
-		"list->string": BuiltIn{"list->string", 1, 1, listtostr},
-		"load":         BuiltIn{"load", 1, 1, load},
-		"log":          BuiltIn{"log", 1, 1, log},
-		"max":          BuiltIn{"max", 2, -1, max},
-		"min":          BuiltIn{"min", 2, -1, min},
-		"modulo":       BuiltIn{"modulo", 2, 2, modulo},
-		"not":          BuiltIn{"not", 1, 1, not},
-		"null?":        BuiltIn{"null?", 1, 1, null_},
-		"number?":      BuiltIn{"number?", 1, 1, number_},
+		"#f":                  Boolean(false),
+		"#t":                  Boolean(true),
+		"+":                   BuiltIn{"+", 0, -1, add},
+		"-":                   BuiltIn{"-", 1, -1, sub},
+		"*":                   BuiltIn{"*", 0, -1, mul},
+		"/":                   BuiltIn{"/", 1, -1, div},
+		">":                   BuiltIn{">", 2, -1, gt},
+		"<":                   BuiltIn{"<", 2, -1, lt},
+		">=":                  BuiltIn{">=", 2, -1, ge},
+		"<=":                  BuiltIn{"<=", 2, -1, le},
+		"=":                   BuiltIn{"=", 2, -1, eq},
+		"<-":                  BuiltIn{"<-", 2, 2, send},
+		"->":                  BuiltIn{"->", 1, 1, receive},
+		"acos":                BuiltIn{"acos", 1, 1, acos},
+		"append":              BuiltIn{"append", 2, -1, sappend},
+		"apply":               BuiltIn{"apply", 2, -1, apply},
+		"asin":                BuiltIn{"asin", 1, 1, asin},
+		"atan":                BuiltIn{"atan", 1, 1, atan},
+		"begin":               BuiltIn{"begin", 0, -1, begin},
+		"close":               BuiltIn{"close", 1, 1, sclose},
+		"car":                 BuiltIn{"car", 1, 1, car},
+		"cdr":                 BuiltIn{"cdr", 1, 1, cdr},
+		"chan":                BuiltIn{"chan", 0, 0, schan},
+		"close-input-port":    BuiltIn{"close-input-port", 1, 1, closeinport},
+		"close-output-port":   BuiltIn{"close-output-port", 1, 1, closeoutport},
+		"cons":                BuiltIn{"cons", 2, 2, cons},
+		"cos":                 BuiltIn{"cos", 1, 1, cos},
+		"current-input-port":  Port{os.Stdin, nil, bufio.NewReader(os.Stdin), nil},
+		"current-output-port": Port{nil, os.Stdout, nil, bufio.NewWriter(os.Stdout)},
+
+		"exp":              BuiltIn{"exp", 1, 1, exp},
+		"eq?":              BuiltIn{"eq?", 2, 2, eqv},
+		"equal?":           BuiltIn{"equal?", 2, 2, eq},
+		"eqv?":             BuiltIn{"eqv?", 2, 2, eqv},
+		"error":            BuiltIn{"error", 1, 1, serror},
+		"error?":           BuiltIn{"error?", 1, 1, error_},
+		"flush":            BuiltIn{"flush", 0, 1, flush},
+		"input-port?":      BuiltIn{"input-port?", 1, 1, inputport_},
+		"length":           BuiltIn{"length", 1, 1, length},
+		"list":             BuiltIn{"list", 0, -1, list},
+		"list?":            BuiltIn{"list?", 1, 1, list_},
+		"list->string":     BuiltIn{"list->string", 1, 1, listtostr},
+		"load":             BuiltIn{"load", 1, 1, load},
+		"log":              BuiltIn{"log", 1, 1, log},
+		"max":              BuiltIn{"max", 2, -1, max},
+		"min":              BuiltIn{"min", 2, -1, min},
+		"modulo":           BuiltIn{"modulo", 2, 2, modulo},
+		"newline":          BuiltIn{"newline", 1, 2, newline},
+		"not":              BuiltIn{"not", 1, 1, not},
+		"null?":            BuiltIn{"null?", 1, 1, null_},
+		"number?":          BuiltIn{"number?", 1, 1, number_},
+		"open-input-file":  BuiltIn{"open-input-file", 1, 1, openinfile},
+		"open-output-file": BuiltIn{"open-output-file", 1, 1, openoutfile},
+		"output-port?":     BuiltIn{"output-port?", 1, 1, outputport_},
+		"peek-char":        BuiltIn{"peek-char", 0, 1, peekchar},
 		//"pmap": BuiltIn{"pmap", 2, -1, pmap},
 		"procedure?":   BuiltIn{"procedure?", 1, 1, procedure_},
+		"read-char":    BuiltIn{"read-char", 0, 1, readchar},
 		"remainder":    BuiltIn{"remainder", 2, 2, remainder},
 		"round":        BuiltIn{"round", 1, 1, round},
 		"sin":          BuiltIn{"sin", 1, 1, sin},
@@ -83,6 +98,8 @@ func StandardEnv() Environment {
 		"string?":      BuiltIn{"string?", 1, 1, string_},
 		"symbol?":      BuiltIn{"symbol?", 1, 1, symbol_},
 		"tan":          BuiltIn{"tan", 1, 1, tan},
+		"write":        BuiltIn{"write", 1, 2, write},
+		"write-char":   BuiltIn{"write-char", 1, 2, writechar},
 		//TODO: eq?
 	}, nil}
 	dirc, err := ioutil.ReadDir("std")
@@ -252,6 +269,29 @@ func error_(e Environment, args ...Expr) Expr {
 	return Boolean(true)
 }
 
+func flush(e Environment, args ...Expr) Expr {
+	var ep Expr
+	if len(args) == 1 {
+		ep = args[0]
+	} else {
+		ep = e.Local["current-output-port"]
+	}
+	p, ok := ep.(Port)
+	if !ok && p.w == nil {
+		return Error{"flush: Not an output port."}
+	}
+	p.w.Flush()
+	return Boolean(true)
+}
+
+func inputport_(e Environment, args ...Expr) Expr {
+	if p, ok := args[0].(Port); !ok {
+		return Boolean(false)
+	} else {
+		return Boolean(p.r != nil)
+	}
+}
+
 func length(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(ExprList); !ok {
 		return Error{"length: Argument 1 is not a list."}
@@ -321,6 +361,21 @@ func min(e Environment, args ...Expr) Expr {
 	return Number(min)
 }
 
+func newline(e Environment, args ...Expr) Expr {
+	var ep Expr
+	if len(args) == 1 {
+		ep = args[0]
+	} else {
+		ep = e.Local["current-output-port"]
+	}
+	p, ok := ep.(Port)
+	if !ok && p.w == nil {
+		return Error{"newline: Not an output port."}
+	}
+	fmt.Fprintln(p.w, "")
+	return Boolean(true)
+}
+
 func not(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(Boolean); !ok {
 		if args[0] != nil {
@@ -347,11 +402,81 @@ func number_(e Environment, args ...Expr) Expr {
 	return Boolean(true)
 }
 
+func openinfile(e Environment, args ...Expr) Expr {
+	if s, ok := args[0].(String); !ok {
+		return Error{"open-input-file: Argument 1 is not a string."}
+	} else {
+		f, err := os.Open(string(s))
+		if err != nil {
+			return Error{err.Error()}
+		}
+		return Port{f, nil, bufio.NewReader(f), nil}
+	}
+}
+
+func openoutfile(e Environment, args ...Expr) Expr {
+	if s, ok := args[0].(String); !ok {
+		return Error{"open-output-file: Argument 1 is not a string."}
+	} else {
+		f, err := os.Create(string(s))
+		if err != nil {
+			return Error{err.Error()}
+		}
+		return Port{nil, f, nil, bufio.NewWriter(f)}
+	}
+}
+
+func outputport_(e Environment, args ...Expr) Expr {
+	if p, ok := args[0].(Port); !ok {
+		return Boolean(false)
+	} else {
+		return Boolean(p.w != nil)
+	}
+}
+
+func peekchar(e Environment, args ...Expr) Expr {
+	var p Port
+	if len(args) == 0 {
+		p, _ = e.Local["current-input-port"].(Port)
+	} else if p2, ok := args[0].(Port); !ok {
+		return Error{"peek-char: Argument 1 is not a port."}
+	} else {
+		p = p2
+	}
+	if p.r == nil {
+		return Error{"peek-char: Not an input port."}
+	}
+	r, _, err := p.r.ReadRune()
+	if err != nil {
+		return Error{err.Error()}
+	}
+	p.r.UnreadRune()
+	return Character(r)
+}
+
 func procedure_(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(Proc); ok {
 		return Boolean(true)
 	}
 	return Boolean(false)
+}
+
+func readchar(e Environment, args ...Expr) Expr {
+	var ep Expr
+	if len(args) == 1 {
+		ep = args[0]
+	} else {
+		ep = e.Local["current-input-port"]
+	}
+	p, ok := ep.(Port)
+	if !ok && p.w == nil {
+		return Error{"read-char: Not an input port."}
+	}
+	r, _, err := p.r.ReadRune()
+	if err != nil {
+		return Error{err.Error()}
+	}
+	return Character(r)
 }
 
 func round(e Environment, args ...Expr) Expr {
@@ -379,6 +504,33 @@ func sclose(e Environment, args ...Expr) Expr {
 		close(c)
 	}
 	return Boolean(true)
+}
+
+func closeinport(e Environment, args ...Expr) Expr {
+	if p, ok := args[0].(Port); !ok {
+		return Error{"close-input-port: Argument 1 is not a port."}
+	} else {
+		if p.r == nil {
+			return Error{"close-input-port: Not an input port."}
+		}
+		p.r = nil
+		p.rclose.Close()
+		return Boolean(true)
+	}
+}
+
+func closeoutport(e Environment, args ...Expr) Expr {
+	if p, ok := args[0].(Port); !ok {
+		return Error{"close-output-port: Argument 1 is not a port."}
+	} else {
+		if p.w == nil {
+			return Error{"close-output-port: Not an output port."}
+		}
+		p.w.Flush()
+		p.w = nil
+		p.wclose.Close()
+		return Boolean(true)
+	}
 }
 
 //TODO: Could allow loading multiple files in one call.
@@ -468,6 +620,43 @@ func strtolist(e Environment, args ...Expr) Expr {
 func string_(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(String); !ok {
 		return Boolean(false)
+	}
+	return Boolean(true)
+}
+
+func write(e Environment, args ...Expr) Expr {
+	var ep Expr
+	if len(args) == 2 {
+		ep = args[1]
+	} else {
+		ep = e.Local["current-output-port"]
+	}
+	p, ok := ep.(Port)
+	if !ok && p.w == nil {
+		return Error{"write: Not an output port."}
+	}
+	fmt.Fprint(p.w, args[0])
+	return Boolean(true)
+}
+
+func writechar(e Environment, args ...Expr) Expr {
+	var ep Expr
+	if len(args) == 2 {
+		ep = args[1]
+	} else {
+		ep = e.Local["current-output-port"]
+	}
+	p, ok := ep.(Port)
+	if !ok && p.w == nil {
+		return Error{"write-char: Not an output port."}
+	}
+	if c, ok2 := args[0].(Character); !ok2 {
+		return Error{"write-char: Argument 1 is not a character."}
+	} else {
+		_, err := p.w.WriteRune(rune(c))
+		if err != nil {
+			return Error{err.Error()}
+		}
 	}
 	return Boolean(true)
 }

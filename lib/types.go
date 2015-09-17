@@ -1,7 +1,9 @@
 package goscheme
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"strconv"
 	"unicode/utf8"
 )
@@ -128,6 +130,23 @@ func (e EvalBlock) isExpr() {}
 type ExprList []Expr
 
 func (el ExprList) isExpr() {}
+
+/*
+A port can either be written to or read from.
+bufio.Reader/Writer is used for some conveniences, but ports also must be closeable.
+The assumption is that for input-ports w and wclose will be nil, and vice versa.
+If r != nil then rclose must also be != nil, same with w and wclose.
+While R5RS seems to only deal with files this implementation is vague enough that
+adding network support shouldn't be a big deal.
+*/
+type Port struct {
+	rclose io.Closer
+	wclose io.Closer
+	r      *bufio.Reader
+	w      *bufio.Writer
+}
+
+func (p Port) isExpr() {}
 
 type Func func(...Expr) Expr
 
