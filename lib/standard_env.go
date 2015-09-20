@@ -263,10 +263,8 @@ func serror(e Environment, args ...Expr) Expr {
 }
 
 func error_(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(Error); !ok {
-		return Boolean(false)
-	}
-	return Boolean(true)
+	_, ok := args[0].(Error)
+	return Boolean(ok)
 }
 
 func flush(e Environment, args ...Expr) Expr {
@@ -285,11 +283,8 @@ func flush(e Environment, args ...Expr) Expr {
 }
 
 func inputport_(e Environment, args ...Expr) Expr {
-	if p, ok := args[0].(Port); !ok {
-		return Boolean(false)
-	} else {
-		return Boolean(p.r != nil)
-	}
+	p, ok := args[0].(Port)
+	return Boolean(ok && p.r != nil)
 }
 
 func length(e Environment, args ...Expr) Expr {
@@ -308,10 +303,8 @@ func list(e Environment, args ...Expr) Expr {
 }
 
 func list_(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(ExprList); !ok {
-		return Boolean(false)
-	}
-	return Boolean(true)
+	_, ok := args[0].(ExprList)
+	return Boolean(ok)
 }
 
 func listtostr(e Environment, args ...Expr) Expr {
@@ -387,19 +380,13 @@ func not(e Environment, args ...Expr) Expr {
 }
 
 func null_(e Environment, args ...Expr) Expr {
-	if eList, ok := args[0].(ExprList); ok {
-		if len(eList) == 0 {
-			return Number(1)
-		}
-	}
-	return Number(0)
+	eList, ok := args[0].(ExprList)
+	return Boolean(ok && len(eList) == 0)
 }
 
 func number_(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(Number); !ok {
-		return Boolean(false)
-	}
-	return Boolean(true)
+	_, ok := args[0].(Number)
+	return Boolean(ok)
 }
 
 func openinfile(e Environment, args ...Expr) Expr {
@@ -427,11 +414,8 @@ func openoutfile(e Environment, args ...Expr) Expr {
 }
 
 func outputport_(e Environment, args ...Expr) Expr {
-	if p, ok := args[0].(Port); !ok {
-		return Boolean(false)
-	} else {
-		return Boolean(p.w != nil)
-	}
+	p, ok := args[0].(Port)
+	return Boolean(ok && p.w != nil)
 }
 
 func peekchar(e Environment, args ...Expr) Expr {
@@ -455,10 +439,8 @@ func peekchar(e Environment, args ...Expr) Expr {
 }
 
 func procedure_(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(Proc); ok {
-		return Boolean(true)
-	}
-	return Boolean(false)
+	_, ok := args[0].(Proc)
+	return Boolean(ok)
 }
 
 func readchar(e Environment, args ...Expr) Expr {
@@ -618,10 +600,8 @@ func strtolist(e Environment, args ...Expr) Expr {
 }
 
 func string_(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(String); !ok {
-		return Boolean(false)
-	}
-	return Boolean(true)
+	_, ok := args[0].(String)
+	return Boolean(ok)
 }
 
 func write(e Environment, args ...Expr) Expr {
