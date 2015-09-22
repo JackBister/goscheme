@@ -25,28 +25,6 @@ import (
 	"time"
 )
 
-type Environment struct {
-	Local  map[string]Expr
-	Parent *Environment
-}
-
-func (e *Environment) find(s string) map[string]Expr {
-	if e.Local[s] != nil {
-		return e.Local
-	}
-	if e.Parent == nil {
-		return nil
-	}
-	return e.Parent.find(s)
-}
-func (e *Environment) copy() Environment {
-	nm := map[string]Expr{}
-	for k, v := range e.Local {
-		nm[k] = v
-	}
-	return Environment{nm, e.Parent}
-}
-
 var GlobalEnv Environment
 
 func Tokenize(s string) []string {

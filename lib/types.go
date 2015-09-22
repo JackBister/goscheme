@@ -12,6 +12,28 @@ type Expr interface {
 	isExpr()
 }
 
+type Environment struct {
+	Local  map[string]Expr
+	Parent *Environment
+}
+
+func (e *Environment) find(s string) map[string]Expr {
+	if e.Local[s] != nil {
+		return e.Local
+	}
+	if e.Parent == nil {
+		return nil
+	}
+	return e.Parent.find(s)
+}
+func (e *Environment) copy() Environment {
+	nm := map[string]Expr{}
+	for k, v := range e.Local {
+		nm[k] = v
+	}
+	return Environment{nm, e.Parent}
+}
+
 /*
 Number type
 The language does not distinguish between precise (int) and imprecise (float)
