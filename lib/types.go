@@ -197,18 +197,18 @@ func (u UserProc) isExpr() {}
 
 func (u UserProc) eval(e Environment, args ...Expr) Expr {
 	if len(args) < len(u.params) {
-		return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)) + ")"}
+		if !(u.variadic && len(args) == len(u.params)-1) {
+			return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)) + ")"}
+		}
 	}
 	if len(args) > len(u.params) && !u.variadic {
 		return Error{"Too many arguments (need " + strconv.Itoa(len(u.params)) + ")"}
 	}
 	for i, par := range u.params {
-		e.Local[unwrapSymbol(par)] = args[i]
 		if i == len(u.params)-1 && u.variadic {
-			if i != 0 && unwrapSymbol(u.params[i-1]) == "." {
-				i -= 1
-			}
 			e.Local[unwrapSymbol(par)] = ExprList(args[i:])
+		} else {
+			e.Local[unwrapSymbol(par)] = args[i]
 		}
 	}
 	return Eval(u.body, e)
