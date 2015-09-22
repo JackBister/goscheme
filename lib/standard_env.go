@@ -28,6 +28,7 @@ import (
 	"strings"
 	//	"sync"
 	"time"
+	"unicode"
 )
 
 func StandardEnv() Environment {
@@ -51,17 +52,24 @@ func StandardEnv() Environment {
 		"asin":                BuiltIn{"asin", 1, 1, asin},
 		"atan":                BuiltIn{"atan", 1, 1, atan},
 		"begin":               BuiltIn{"begin", 0, -1, begin},
+		"char?":               BuiltIn{"char?", 1, 1, char_},
 		"close":               BuiltIn{"close", 1, 1, sclose},
 		"car":                 BuiltIn{"car", 1, 1, car},
 		"cdr":                 BuiltIn{"cdr", 1, 1, cdr},
 		"chan":                BuiltIn{"chan", 0, 0, schan},
+		"char-alphabetic?":    BuiltIn{"char-alphabetic?", 1, 1, charalpha_},
+		"char-downcase":       BuiltIn{"char-downcase", 1, 1, chardown},
+		"char-lower-case?":    BuiltIn{"char-lower-case?", 1, 1, charlower_},
+		"char-numeric?":       BuiltIn{"char-numeric?", 1, 1, charnumeric_},
+		"char-upcase":         BuiltIn{"char-upcase", 1, 1, charup},
+		"char-upper-case?":    BuiltIn{"char-upper-case?", 1, 1, charupper_},
+		"char-whitespace?":    BuiltIn{"char-whitespace?", 1, 1, charwhitespace_},
 		"close-input-port":    BuiltIn{"close-input-port", 1, 1, closeinport},
 		"close-output-port":   BuiltIn{"close-output-port", 1, 1, closeoutport},
 		"cons":                BuiltIn{"cons", 2, 2, cons},
 		"cos":                 BuiltIn{"cos", 1, 1, cos},
 		"current-input-port":  Port{os.Stdin, nil, bufio.NewReader(os.Stdin), nil},
 		"current-output-port": Port{nil, os.Stdout, nil, bufio.NewWriter(os.Stdout)},
-
 		"exp":              BuiltIn{"exp", 1, 1, exp},
 		"eq?":              BuiltIn{"eq?", 2, 2, eqv},
 		"equal?":           BuiltIn{"equal?", 2, 2, eq},
@@ -237,6 +245,67 @@ func cdr(e Environment, args ...Expr) Expr {
 		return ExprList{}
 	}
 	return eList[1:]
+}
+
+func char_(e Environment, args ...Expr) Expr {
+	_, ok := args[0].(Character)
+	return Boolean(ok)
+}
+
+func charalpha_(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Character); !ok {
+		return Error{"char-alphabetic?: Argument 1 is not a char."}
+	} else {
+		return Boolean(unicode.IsLetter(rune(v)))
+	}
+}
+
+func chardown(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Character); !ok {
+		return Error{"char-downcase?: Argument 1 is not a char."}
+	} else {
+		return Character(unicode.ToLower(rune(v)))
+	}
+}
+
+func charlower_(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Character); !ok {
+		return Error{"char-lower-case?: Argument 1 is not a char."}
+	} else {
+		return Boolean(unicode.IsLower(rune(v)))
+	}
+}
+
+func charnumeric_(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Character); !ok {
+		return Error{"char-numeric?: Argument 1 is not a char."}
+	} else {
+		return Boolean(unicode.IsNumber(rune(v)))
+	}
+}
+
+func charup(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Character); !ok {
+		return Error{"char-upcase?: Argument 1 is not a char."}
+	} else {
+		return Character(unicode.ToUpper(rune(v)))
+	}
+}
+
+func charupper_(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Character); !ok {
+		return Error{"char-upper-case?: Argument 1 is not a char."}
+	} else {
+		return Boolean(unicode.IsUpper(rune(v)))
+	}
+}
+
+func charwhitespace_(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Character); !ok {
+		return Error{"char-whitespace?: Argument 1 is not a char."}
+	} else {
+		return Boolean(unicode.IsSpace(rune(v)))
+	}
 }
 
 func cons(e Environment, args ...Expr) Expr {
