@@ -24,6 +24,9 @@
 (define last (lambda (li)
 	(if (= (length li) 1) (car li) (last (cdr li)))))
 
+(define length (lambda (x)
+	(fold-right (lambda (_ y) (+ y 1)) 0 x)))
+
 (define list-tail (lambda (li k) (if (zero? k) li (list-tail (cdr li) (- k 1)))))
 
 (define list-ref (lambda (li k) (car (list-tail li k))))

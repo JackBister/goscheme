@@ -77,7 +77,6 @@ func StandardEnv() Environment {
 		"error?":           BuiltIn{"error?", 1, 1, error_},
 		"flush":            BuiltIn{"flush", 0, 1, flush},
 		"input-port?":      BuiltIn{"input-port?", 1, 1, inputport_},
-		"length":           BuiltIn{"length", 1, 1, length},
 		"list":             BuiltIn{"list", 0, -1, list},
 		"list?":            BuiltIn{"list?", 1, 1, list_},
 		"list->string":     BuiltIn{"list->string", 1, 1, listtostr},
@@ -341,13 +340,6 @@ func flush(e Environment, args ...Expr) Expr {
 func inputport_(e Environment, args ...Expr) Expr {
 	p, ok := args[0].(Port)
 	return Boolean(ok && p.r != nil)
-}
-
-func length(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(ExprList); !ok {
-		return Error{"length: Argument 1 is not a list."}
-	}
-	return Number(len(args[0].(ExprList)))
 }
 
 func list(e Environment, args ...Expr) Expr {
