@@ -47,6 +47,8 @@
 
 (define memv (lambda (obj li) (if (null? li) #f (if (eqv? obj (car li)) li (memv obj (cdr li))))))
 
+(define null? (lambda (x) (eqv? '() x)))
+
 (define remove (lambda (pred li)
 	(if (null? li) li
 	  (if (pred (car li))
