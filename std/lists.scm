@@ -1,3 +1,10 @@
+(define append (lambda (x y . z)
+	(begin
+	  (define sappend (lambda (li1 li2)
+		(if (null? li1) li2 (if (null? li2) '() (cons (car li1) (sappend (cdr li1) li2))))))
+	  (if (null? z) (sappend x y)
+	  (apply append (sappend x y) z)))))
+
 (define concatenate (lambda (li) (apply append li)))
 
 (define filter (lambda (pred li) (

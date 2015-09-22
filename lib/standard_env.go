@@ -47,7 +47,6 @@ func StandardEnv() Environment {
 		"<-":                  BuiltIn{"<-", 2, 2, send},
 		"->":                  BuiltIn{"->", 1, 1, receive},
 		"acos":                BuiltIn{"acos", 1, 1, acos},
-		"append":              BuiltIn{"append", 2, -1, sappend},
 		"apply":               BuiltIn{"apply", 2, -1, apply},
 		"asin":                BuiltIn{"asin", 1, 1, asin},
 		"atan":                BuiltIn{"atan", 1, 1, atan},
@@ -199,18 +198,6 @@ func abs(e Environment, args ...Expr) Expr {
 	}
 	xf := unwrapNumber(args[0])
 	return Number(math.Abs(xf))
-}
-
-func sappend(e Environment, args ...Expr) Expr {
-	ret := make(ExprList, 0)
-	for i, arg := range args {
-		if _, ok := arg.(ExprList); !ok {
-			return Error{"append: Argument " + strconv.Itoa(i+1) + " is not a list."}
-		}
-		argl := arg.(ExprList)
-		ret = append(ret, argl...)
-	}
-	return ret
 }
 
 func apply(e Environment, args ...Expr) Expr {
