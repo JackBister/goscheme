@@ -96,6 +96,7 @@ func StandardEnv() Environment {
 		"open-input-file":  BuiltIn{"open-input-file", 1, 1, openinfile},
 		"open-output-file": BuiltIn{"open-output-file", 1, 1, openoutfile},
 		"output-port?":     BuiltIn{"output-port?", 1, 1, outputport_},
+		"pair?":            BuiltIn{"pair?", 1, 1, pair_},
 		"peek-char":        BuiltIn{"peek-char", 0, 1, peekchar},
 		//"pmap": BuiltIn{"pmap", 2, -1, pmap},
 		"procedure?":     BuiltIn{"procedure?", 1, 1, procedure_},
@@ -474,6 +475,11 @@ func openoutfile(e Environment, args ...Expr) Expr {
 func outputport_(e Environment, args ...Expr) Expr {
 	p, ok := args[0].(Port)
 	return Boolean(ok && p.w != nil)
+}
+
+func pair_(e Environment, args ...Expr) Expr {
+	l, ok := args[0].(ExprList)
+	return Boolean(ok && len(l) != 0)
 }
 
 func peekchar(e Environment, args ...Expr) Expr {
