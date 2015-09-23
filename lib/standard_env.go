@@ -51,6 +51,7 @@ func StandardEnv() Environment {
 		"asin":                BuiltIn{"asin", 1, 1, asin},
 		"atan":                BuiltIn{"atan", 1, 1, atan},
 		"begin":               BuiltIn{"begin", 0, -1, begin},
+		"boolean?":            BuiltIn{"boolean?", 1, 1, boolean_},
 		"char?":               BuiltIn{"char?", 1, 1, char_},
 		"close":               BuiltIn{"close", 1, 1, sclose},
 		"car":                 BuiltIn{"car", 1, 1, car},
@@ -209,6 +210,11 @@ func apply(e Environment, args ...Expr) Expr {
 //TODO: 0 args => return the begin proc
 func begin(e Environment, args ...Expr) Expr {
 	return ExprList(args)[len(args)-1]
+}
+
+func boolean_(e Environment, args ...Expr) Expr {
+	_, ok := args[0].(Boolean)
+	return Boolean(ok)
 }
 
 func car(e Environment, args ...Expr) Expr {
