@@ -45,6 +45,14 @@ func remainder(e Environment, args ...Expr) Expr {
 	return Number(math.Mod(a0n, a1n))
 }
 
+func sqrt(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Number); !ok {
+		return Error{"sqrt: Argument 1 is not a number"}
+	} else {
+		return Number(math.Sqrt(float64(v)))
+	}
+}
+
 func truncate(e Environment, args ...Expr) Expr {
 	if v, ok := args[0].(Number); !ok {
 		return Error{"truncate: Argument 1 is not a number"}

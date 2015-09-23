@@ -104,6 +104,7 @@ func StandardEnv() Environment {
 		"round":          BuiltIn{"round", 1, 1, round},
 		"sin":            BuiltIn{"sin", 1, 1, sin},
 		"sleep":          BuiltIn{"sleep", 1, 1, sleep},
+		"sqrt":           BuiltIn{"sqrt", 1, 1, sqrt},
 		"string->list":   BuiltIn{"string->list", 1, 1, strtolist},
 		"string->number": BuiltIn{"string->number", 1, 1, strtonum},
 		"string->symbol": BuiltIn{"string->symbol", 1, 1, strtosym},
