@@ -56,6 +56,7 @@ func StandardEnv() Environment {
 		"car":                 BuiltIn{"car", 1, 1, car},
 		"cdr":                 BuiltIn{"cdr", 1, 1, cdr},
 		"chan":                BuiltIn{"chan", 0, 0, schan},
+		"char->integer":       BuiltIn{"char->integer", 1, 1, chartoint},
 		"char-alphabetic?":    BuiltIn{"char-alphabetic?", 1, 1, charalpha_},
 		"char-downcase":       BuiltIn{"char-downcase", 1, 1, chardown},
 		"char-lower-case?":    BuiltIn{"char-lower-case?", 1, 1, charlower_},
@@ -77,6 +78,8 @@ func StandardEnv() Environment {
 		"error?":           BuiltIn{"error?", 1, 1, error_},
 		"flush":            BuiltIn{"flush", 0, 1, flush},
 		"input-port?":      BuiltIn{"input-port?", 1, 1, inputport_},
+		"integer->char":    BuiltIn{"integer->char", 1, 1, inttochar},
+		"integer?":         BuiltIn{"integer?", 1, 1, integer_},
 		"list":             BuiltIn{"list", 0, -1, list},
 		"list?":            BuiltIn{"list?", 1, 1, list_},
 		"list->string":     BuiltIn{"list->string", 1, 1, listtostr},
@@ -230,6 +233,14 @@ func cdr(e Environment, args ...Expr) Expr {
 	return eList[1:]
 }
 
+func chartoint(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Character); !ok {
+		return Error{"char->integer: Argument 1 is not a character."}
+	} else {
+		return Number(v)
+	}
+}
+
 func char_(e Environment, args ...Expr) Expr {
 	_, ok := args[0].(Character)
 	return Boolean(ok)
@@ -337,6 +348,23 @@ func flush(e Environment, args ...Expr) Expr {
 func inputport_(e Environment, args ...Expr) Expr {
 	p, ok := args[0].(Port)
 	return Boolean(ok && p.r != nil)
+}
+
+func integer_(e Environment, args ...Expr) Expr {
+	v, ok := args[0].(Number)
+	v2, _ := round(e, v).(Number)
+	return Boolean(ok && v == v2)
+}
+
+func inttochar(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Number); !ok {
+		return Error{"integer->char: Argument 1 is not an integer"}
+	} else {
+		if !bool(integer_(e, v).(Boolean)) {
+			return Error{"integer->char: Argument 1 is not an integer"}
+		}
+		return Character(v)
+	}
 }
 
 func list(e Environment, args ...Expr) Expr {
