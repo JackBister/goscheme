@@ -88,8 +88,6 @@ func StandardEnv() Environment {
 		"list->string":     BuiltIn{"list->string", 1, 1, listtostr},
 		"load":             BuiltIn{"load", 1, 1, load},
 		"log":              BuiltIn{"log", 1, 1, log},
-		"max":              BuiltIn{"max", 2, -1, max},
-		"min":              BuiltIn{"min", 2, -1, min},
 		"modulo":           BuiltIn{"modulo", 2, 2, modulo},
 		"newline":          BuiltIn{"newline", 1, 2, newline},
 		"not":              BuiltIn{"not", 1, 1, not},
@@ -404,36 +402,6 @@ func listtostr(e Environment, args ...Expr) Expr {
 		s[i] = rune(c)
 	}
 	return String(s)
-}
-
-func max(e Environment, args ...Expr) Expr {
-	max := math.Inf(-1)
-	eList := args[0].(ExprList)
-	for i, arg := range eList {
-		if _, ok := arg.(Number); !ok {
-			return Error{"max: Argument " + strconv.Itoa(i+1) + " is not a number."}
-		}
-		n := unwrapNumber(arg)
-		if n > max {
-			max = n
-		}
-	}
-	return Number(max)
-}
-
-func min(e Environment, args ...Expr) Expr {
-	min := math.Inf(1)
-	eList := args[0].(ExprList)
-	for i, arg := range eList {
-		if _, ok := arg.(Number); !ok {
-			return Error{"min: Argument " + strconv.Itoa(i+1) + " is not a number."}
-		}
-		n := unwrapNumber(arg)
-		if n < min {
-			min = n
-		}
-	}
-	return Number(min)
 }
 
 func newline(e Environment, args ...Expr) Expr {
