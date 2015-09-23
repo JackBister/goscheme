@@ -190,14 +190,6 @@ func div(e Environment, args ...Expr) Expr {
 
 }
 
-func abs(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(Number); !ok {
-		return Error{"abs: Argument 1 is not a number."}
-	}
-	xf := unwrapNumber(args[0])
-	return Number(math.Abs(xf))
-}
-
 func apply(e Environment, args ...Expr) Expr {
 	proc, ok := args[0].(Proc)
 	if !ok {
