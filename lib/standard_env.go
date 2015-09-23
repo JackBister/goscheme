@@ -199,9 +199,15 @@ func abs(e Environment, args ...Expr) Expr {
 }
 
 func apply(e Environment, args ...Expr) Expr {
-	proc := args[0].(Proc)
+	proc, ok := args[0].(Proc)
+	if !ok {
+		return Error{"apply: Argument 1 is not a procedure."}
+	}
 	argn := args[1 : len(args)-1]
-	argl := args[len(args)-1].(ExprList)
+	argl, ok := args[len(args)-1].(ExprList)
+	if !ok {
+		return Error{"apply: Argument " + strconv.Itoa(len(args)) + " is not an expression list."}
+	}
 	return proc.eval(e, append(argn, argl...)...)
 }
 
