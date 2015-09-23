@@ -263,7 +263,7 @@ func charready_(e Environment, args ...Expr) Expr {
 		ep = e.Local["current-input-port"]
 	}
 	p, ok := ep.(Port)
-	if !ok && p.w == nil {
+	if !ok || p.r == nil {
 		return Error{"char-ready?: Not an input port."}
 	}
 	_, err := p.r.Peek(1)
@@ -367,7 +367,7 @@ func flush(e Environment, args ...Expr) Expr {
 		ep = e.Local["current-output-port"]
 	}
 	p, ok := ep.(Port)
-	if !ok && p.w == nil {
+	if !ok || p.w == nil {
 		return Error{"flush: Not an output port."}
 	}
 	p.w.Flush()
@@ -434,7 +434,7 @@ func newline(e Environment, args ...Expr) Expr {
 		ep = e.Local["current-output-port"]
 	}
 	p, ok := ep.(Port)
-	if !ok && p.w == nil {
+	if !ok || p.w == nil {
 		return Error{"newline: Not an output port."}
 	}
 	fmt.Fprintln(p.w, "")
@@ -531,7 +531,7 @@ func readchar(e Environment, args ...Expr) Expr {
 		ep = e.Local["current-input-port"]
 	}
 	p, ok := ep.(Port)
-	if !ok && p.w == nil {
+	if !ok || p.r == nil {
 		return Error{"read-char: Not an input port."}
 	}
 	r, _, err := p.r.ReadRune()
@@ -720,7 +720,7 @@ func write(e Environment, args ...Expr) Expr {
 		ep = e.Local["current-output-port"]
 	}
 	p, ok := ep.(Port)
-	if !ok && p.w == nil {
+	if !ok || p.w == nil {
 		return Error{"write: Not an output port."}
 	}
 	fmt.Fprint(p.w, args[0])
@@ -735,7 +735,7 @@ func writechar(e Environment, args ...Expr) Expr {
 		ep = e.Local["current-output-port"]
 	}
 	p, ok := ep.(Port)
-	if !ok && p.w == nil {
+	if !ok || p.w == nil {
 		return Error{"write-char: Not an output port."}
 	}
 	if c, ok2 := args[0].(Character); !ok2 {
