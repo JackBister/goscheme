@@ -91,6 +91,7 @@ func StandardEnv() Environment {
 		"modulo":           BuiltIn{"modulo", 2, 2, modulo},
 		"newline":          BuiltIn{"newline", 1, 2, newline},
 		"not":              BuiltIn{"not", 1, 1, not},
+		"number->string":   BuiltIn{"number->string", 1, 1, numtostr},
 		"number?":          BuiltIn{"number?", 1, 1, number_},
 		"open-input-file":  BuiltIn{"open-input-file", 1, 1, openinfile},
 		"open-output-file": BuiltIn{"open-output-file", 1, 1, openoutfile},
@@ -427,6 +428,14 @@ func not(e Environment, args ...Expr) Expr {
 		return Boolean(true)
 	}
 	return Boolean(!(bool(args[0].(Boolean))))
+}
+
+func numtostr(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Number); !ok {
+		return Error{"number->string: Argument 1 is not a number."}
+	} else {
+		return String(strconv.FormatFloat(float64(v), 'f', -1, 64))
+	}
 }
 
 func number_(e Environment, args ...Expr) Expr {
