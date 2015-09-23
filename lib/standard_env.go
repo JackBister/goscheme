@@ -53,6 +53,7 @@ func StandardEnv() Environment {
 		"begin":               BuiltIn{"begin", 0, -1, begin},
 		"boolean?":            BuiltIn{"boolean?", 1, 1, boolean_},
 		"ceiling":             BuiltIn{"ceiling", 1, 1, ceiling},
+		"char-ready?":         BuiltIn{"char-ready?", 0, 1, charready_},
 		"char?":               BuiltIn{"char?", 1, 1, char_},
 		"close":               BuiltIn{"close", 1, 1, sclose},
 		"car":                 BuiltIn{"car", 1, 1, car},
@@ -252,6 +253,21 @@ func chartoint(e Environment, args ...Expr) Expr {
 	} else {
 		return Number(v)
 	}
+}
+
+func charready_(e Environment, args ...Expr) Expr {
+	var ep Expr
+	if len(args) == 1 {
+		ep = args[0]
+	} else {
+		ep = e.Local["current-input-port"]
+	}
+	p, ok := ep.(Port)
+	if !ok && p.w == nil {
+		return Error{"char-ready?: Not an input port."}
+	}
+	_, err := p.r.Peek(1)
+	return Boolean(err == nil)
 }
 
 func char_(e Environment, args ...Expr) Expr {
