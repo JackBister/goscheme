@@ -52,6 +52,7 @@ func StandardEnv() Environment {
 		"atan":                BuiltIn{"atan", 1, 1, atan},
 		"begin":               BuiltIn{"begin", 0, -1, begin},
 		"boolean?":            BuiltIn{"boolean?", 1, 1, boolean_},
+		"ceiling":             BuiltIn{"ceiling", 1, 1, ceiling},
 		"char?":               BuiltIn{"char?", 1, 1, char_},
 		"close":               BuiltIn{"close", 1, 1, sclose},
 		"car":                 BuiltIn{"car", 1, 1, car},
@@ -77,6 +78,7 @@ func StandardEnv() Environment {
 		"eqv?":             BuiltIn{"eqv?", 2, 2, eqv},
 		"error":            BuiltIn{"error", 1, 1, serror},
 		"error?":           BuiltIn{"error?", 1, 1, error_},
+		"floor":            BuiltIn{"floor", 1, 1, floor},
 		"flush":            BuiltIn{"flush", 0, 1, flush},
 		"input-port?":      BuiltIn{"input-port?", 1, 1, inputport_},
 		"integer->char":    BuiltIn{"integer->char", 1, 1, inttochar},
@@ -107,6 +109,7 @@ func StandardEnv() Environment {
 		"string?":      BuiltIn{"string?", 1, 1, string_},
 		"symbol?":      BuiltIn{"symbol?", 1, 1, symbol_},
 		"tan":          BuiltIn{"tan", 1, 1, tan},
+		"truncate":     BuiltIn{"truncate", 1, 1, truncate},
 		"write":        BuiltIn{"write", 1, 2, write},
 		"write-char":   BuiltIn{"write-char", 1, 2, writechar},
 		//TODO: eq?
