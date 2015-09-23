@@ -98,19 +98,20 @@ func StandardEnv() Environment {
 		"output-port?":     BuiltIn{"output-port?", 1, 1, outputport_},
 		"peek-char":        BuiltIn{"peek-char", 0, 1, peekchar},
 		//"pmap": BuiltIn{"pmap", 2, -1, pmap},
-		"procedure?":   BuiltIn{"procedure?", 1, 1, procedure_},
-		"read-char":    BuiltIn{"read-char", 0, 1, readchar},
-		"remainder":    BuiltIn{"remainder", 2, 2, remainder},
-		"round":        BuiltIn{"round", 1, 1, round},
-		"sin":          BuiltIn{"sin", 1, 1, sin},
-		"sleep":        BuiltIn{"sleep", 1, 1, sleep},
-		"string->list": BuiltIn{"string->list", 1, 1, strtolist},
-		"string?":      BuiltIn{"string?", 1, 1, string_},
-		"symbol?":      BuiltIn{"symbol?", 1, 1, symbol_},
-		"tan":          BuiltIn{"tan", 1, 1, tan},
-		"truncate":     BuiltIn{"truncate", 1, 1, truncate},
-		"write":        BuiltIn{"write", 1, 2, write},
-		"write-char":   BuiltIn{"write-char", 1, 2, writechar},
+		"procedure?":     BuiltIn{"procedure?", 1, 1, procedure_},
+		"read-char":      BuiltIn{"read-char", 0, 1, readchar},
+		"remainder":      BuiltIn{"remainder", 2, 2, remainder},
+		"round":          BuiltIn{"round", 1, 1, round},
+		"sin":            BuiltIn{"sin", 1, 1, sin},
+		"sleep":          BuiltIn{"sleep", 1, 1, sleep},
+		"string->list":   BuiltIn{"string->list", 1, 1, strtolist},
+		"string->number": BuiltIn{"string->number", 1, 1, strtonum},
+		"string?":        BuiltIn{"string?", 1, 1, string_},
+		"symbol?":        BuiltIn{"symbol?", 1, 1, symbol_},
+		"tan":            BuiltIn{"tan", 1, 1, tan},
+		"truncate":       BuiltIn{"truncate", 1, 1, truncate},
+		"write":          BuiltIn{"write", 1, 2, write},
+		"write-char":     BuiltIn{"write-char", 1, 2, writechar},
 		//TODO: eq?
 	}, nil}
 	dirc, err := ioutil.ReadDir("std")
@@ -650,6 +651,18 @@ func strtolist(e Environment, args ...Expr) Expr {
 			r[i] = Character(c)
 		}
 		return ExprList(r)
+	}
+}
+
+func strtonum(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(String); !ok {
+		return Error{"string->number: Argument 1 is not a string."}
+	} else {
+		r, err := strconv.ParseFloat(string(v), 64)
+		if err != nil {
+			return Error{"string->number: Error parsing string."}
+		}
+		return Number(r)
 	}
 }
 
