@@ -197,7 +197,11 @@ func (u UserProc) isExpr() {}
 
 func (u UserProc) eval(e Environment, args ...Expr) Expr {
 	if len(args) < len(u.params) {
-		if !(u.variadic && len(args) == len(u.params)-1) {
+		if u.variadic {
+			if len(args) != len(u.params)-1 {
+				return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)-1) + ")"}
+			}
+		} else {
 			return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)) + ")"}
 		}
 	}
