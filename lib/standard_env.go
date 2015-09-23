@@ -106,7 +106,9 @@ func StandardEnv() Environment {
 		"sleep":          BuiltIn{"sleep", 1, 1, sleep},
 		"string->list":   BuiltIn{"string->list", 1, 1, strtolist},
 		"string->number": BuiltIn{"string->number", 1, 1, strtonum},
+		"string->symbol": BuiltIn{"string->symbol", 1, 1, strtosym},
 		"string?":        BuiltIn{"string?", 1, 1, string_},
+		"symbol->string": BuiltIn{"symbol->string", 1, 1, symtostr},
 		"symbol?":        BuiltIn{"symbol?", 1, 1, symbol_},
 		"tan":            BuiltIn{"tan", 1, 1, tan},
 		"truncate":       BuiltIn{"truncate", 1, 1, truncate},
@@ -525,6 +527,14 @@ func round(e Environment, args ...Expr) Expr {
 	return Number(r)
 }
 
+func symtostr(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(Symbol); !ok {
+		return Error{"symbol->string: Argument 1 is not a symbol"}
+	} else {
+		return String(string(v))
+	}
+}
+
 func symbol_(e Environment, args ...Expr) Expr {
 	_, ok := args[0].(Symbol)
 	return Boolean(ok)
@@ -663,6 +673,14 @@ func strtonum(e Environment, args ...Expr) Expr {
 			return Error{"string->number: Error parsing string."}
 		}
 		return Number(r)
+	}
+}
+
+func strtosym(e Environment, args ...Expr) Expr {
+	if v, ok := args[0].(String); !ok {
+		return Error{"string->symbol: Argument 1 is not a string."}
+	} else {
+		return Symbol(string(v))
 	}
 }
 
