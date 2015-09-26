@@ -107,6 +107,7 @@ func StandardEnv() Environment {
 		"peek-char":        BuiltIn{"peek-char", 0, 1, peekchar},
 		//"pmap": BuiltIn{"pmap", 2, -1, pmap},
 		"procedure?":     BuiltIn{"procedure?", 1, 1, procedure_},
+		"read-bytes":     BuiltIn{"read-bytes", 1, 2, readbytes},
 		"read-char":      BuiltIn{"read-char", 0, 1, readchar},
 		"remainder":      BuiltIn{"remainder", 2, 2, remainder},
 		"round":          BuiltIn{"round", 1, 1, round},
@@ -585,6 +586,30 @@ func peekchar(e Environment, args ...Expr) Expr {
 func procedure_(e Environment, args ...Expr) Expr {
 	_, ok := args[0].(Proc)
 	return Boolean(ok)
+}
+
+func readbytes(e Environment, args ...Expr) Expr {
+	var ep Expr
+	if len(args) == 2 {
+		ep = args[1]
+	} else {
+		ep = e.Local["current-input-port"]
+	}
+	p, ok := ep.(Port)
+	if !ok || p.r == nil {
+		return Error{"read-bytes: Not an input port."}
+	}
+	if n, ok := args[0].(Number); !ok {
+		return Error{"read-bytes: Argument 1 is not a number."}
+	} else {
+		buf := make([]byte, int64(n))
+		p.r.Read(buf)
+		r := make([]Expr, int64(n))
+		for i, b := range buf {
+			r[i] = Byte(b)
+		}
+		return ExprList(r)
+	}
 }
 
 func readchar(e Environment, args ...Expr) Expr {
