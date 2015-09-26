@@ -75,6 +75,13 @@ func (b Boolean) String() string {
 	return "#f"
 }
 
+type Byte byte
+
+func (b Byte) isExpr() {}
+func (b Byte) String() string {
+	return fmt.Sprintf("0x%x", byte(b))
+}
+
 type Character rune
 
 func (c Character) isExpr() {}

@@ -19,6 +19,7 @@ package goscheme
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -29,6 +30,7 @@ import (
 	//	"sync"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 func StandardEnv() Environment {
@@ -52,6 +54,8 @@ func StandardEnv() Environment {
 		"atan":                BuiltIn{"atan", 1, 1, atan},
 		"begin":               BuiltIn{"begin", 0, -1, begin},
 		"boolean?":            BuiltIn{"boolean?", 1, 1, boolean_},
+		"byte?":               BuiltIn{"byte?", 1, 1, byte_},
+		"bytes->chars":        BuiltIn{"bytes->char", 1, 1, bytestochars},
 		"ceiling":             BuiltIn{"ceiling", 1, 1, ceiling},
 		"char-ready?":         BuiltIn{"char-ready?", 0, 1, charready_},
 		"char?":               BuiltIn{"char?", 1, 1, char_},
@@ -59,6 +63,7 @@ func StandardEnv() Environment {
 		"car":                 BuiltIn{"car", 1, 1, car},
 		"cdr":                 BuiltIn{"cdr", 1, 1, cdr},
 		"chan":                BuiltIn{"chan", 0, 0, schan},
+		"char->bytes":         BuiltIn{"char->bytes", 1, 1, chartobytes},
 		"char->integer":       BuiltIn{"char->integer", 1, 1, chartoint},
 		"char-alphabetic?":    BuiltIn{"char-alphabetic?", 1, 1, charalpha_},
 		"char-downcase":       BuiltIn{"char-downcase", 1, 1, chardown},
@@ -225,6 +230,33 @@ func boolean_(e Environment, args ...Expr) Expr {
 	return Boolean(ok)
 }
 
+func byte_(e Environment, args ...Expr) Expr {
+	_, ok := args[0].(Byte)
+	return Boolean(ok)
+}
+
+func bytestochars(e Environment, args ...Expr) Expr {
+	if l, ok := args[0].(ExprList); !ok {
+		return Error{"bytes->char: argument 1 is not a list."}
+	} else {
+		bl := make([]byte, len(l))
+		for i, v := range l {
+			if b, ok := v.(Byte); !ok {
+				return Error{"bytes->char: Element" +
+					strconv.Itoa(i) + " is not a byte."}
+			} else {
+				bl[i] = byte(b)
+			}
+		}
+		rl := bytes.Runes(bl)
+		el := make([]Expr, len(rl))
+		for i, r := range rl {
+			el[i] = Character(r)
+		}
+		return ExprList(el)
+	}
+}
+
 func car(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(ExprList); !ok {
 		return Error{"car: Argument 1 is not a list."}
@@ -245,6 +277,23 @@ func cdr(e Environment, args ...Expr) Expr {
 		return ExprList{}
 	}
 	return eList[1:]
+}
+
+func chartobytes(e Environment, args ...Expr) Expr {
+	if c, ok := args[0].(Character); !ok {
+		return Error{"char->bytes: Argument 1 is not a character."}
+	} else {
+		l := utf8.RuneLen(rune(c))
+		bl := make([]byte, l)
+		utf8.EncodeRune(bl, rune(c))
+		//Cannot cast b to []Byte - I hate this type system.
+		//also cannot cast []Byte to ExprList or even []Expr
+		r := make([]Expr, l)
+		for i, b := range bl {
+			r[i] = Byte(b)
+		}
+		return ExprList(r)
+	}
 }
 
 func chartoint(e Environment, args ...Expr) Expr {
