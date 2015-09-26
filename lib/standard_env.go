@@ -84,6 +84,7 @@ func StandardEnv() Environment {
 		"eqv?":             BuiltIn{"eqv?", 2, 2, eqv},
 		"error":            BuiltIn{"error", 1, 1, serror},
 		"error?":           BuiltIn{"error?", 1, 1, error_},
+		"file-size":        BuiltIn{"file-size", 1, 1, filesize},
 		"floor":            BuiltIn{"floor", 1, 1, floor},
 		"flush":            BuiltIn{"flush", 0, 1, flush},
 		"input-port?":      BuiltIn{"input-port?", 1, 1, inputport_},
@@ -406,6 +407,20 @@ func serror(e Environment, args ...Expr) Expr {
 func error_(e Environment, args ...Expr) Expr {
 	_, ok := args[0].(Error)
 	return Boolean(ok)
+}
+
+func filesize(e Environment, args ...Expr) Expr {
+	if s, ok := args[0].(String); !ok {
+		return Error{"file-size: Argument 1 is not a string."}
+	} else {
+		fi, err := os.Stat(string(s))
+		if err != nil {
+			return Error{err.Error()}
+		}
+		//I'm a bit scared by this, but I think it should be fine for
+		//any reasonable file sizes.
+		return Number(float64(fi.Size()))
+	}
 }
 
 func flush(e Environment, args ...Expr) Expr {
