@@ -149,6 +149,32 @@ func Eval(e Expr, env Environment) Expr {
 			} else if len(el) > 3 {
 				return Eval(el[3], env)
 			}
+		} else if s0 == "cond" {
+			for i, ex := range el[1:] {
+				if clause, ok := ex.(ExprList); !ok {
+					return Error{"cond: arguments must be expression lists."}
+				} else {
+					if _, ok := clause[0].(Symbol); ok && unwrapSymbol(clause[0]) == "else" {
+						if i != len(el[1:])-1 {
+							return Error{"cond: 'else' must be in the last clause."}
+						}
+						for i2, ex2 := range clause[1:] {
+							if i2 == len(clause[1:])-1 {
+								return Eval(ex2, env)
+							}
+							Eval(ex2, env)
+						}
+					}
+					if Eval(clause[0], env) != Boolean(false) {
+						for i2, ex2 := range clause[1:] {
+							if i2 == len(clause[1:])-1 {
+								return Eval(ex2, env)
+							}
+							Eval(ex2, env)
+						}
+					}
+				}
+			}
 		} else if s0 == "define" {
 			er := Eval(el[2], env)
 			env.Local[unwrapSymbol(el[1])] = er
