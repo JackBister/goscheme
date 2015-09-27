@@ -21,6 +21,14 @@
 (define fold-right (lambda (f z li)
 	(if (null? li) z (f (car li) (fold-right f z (cdr li))))))
 
+;**sep** The separator to insert between the lists.
+;**lis** Any number of lists to join together with the separator.
+;Variadic function which joins all its arguments with the separator inserted between them.
+;Example: `(join 'a '(1 2 3) '(4 5 6) '(7 8 9)) => (1 2 3 a 4 5 6 a 7 8 9)`
+(define join (lambda (e . lis)
+	(fold-right (lambda (x y) (if (null? y) x (append x e y))) '() lis)))
+	
+
 (define last (lambda (li)
 	(if (= (length li) 1) (car li) (last (cdr li)))))
 
