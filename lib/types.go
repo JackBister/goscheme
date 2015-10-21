@@ -13,8 +13,9 @@ type Expr interface {
 }
 
 type Environment struct {
-	Local  map[string]Expr
-	Parent *Environment
+	Local       map[string]Expr
+	LocalSyntax map[Symbol]transformer
+	Parent      *Environment
 }
 
 func (e *Environment) find(s string) map[string]Expr {
@@ -31,7 +32,11 @@ func (e *Environment) copy() Environment {
 	for k, v := range e.Local {
 		nm[k] = v
 	}
-	return Environment{nm, e.Parent}
+	nsm := map[Symbol]transformer{}
+	for k, v := range e.LocalSyntax {
+		nsm[k] = v
+	}
+	return Environment{nm, nsm, e.Parent}
 }
 
 /*
@@ -252,3 +257,127 @@ type Error struct {
 
 func (e Error) Error() string { return e.s }
 func (e Error) isExpr()       {}
+
+type Pattern []Expr
+
+//returns a map of bindings from symbol in the pattern to expression in the
+//input expressionlist and a bool which is true if the match was successful
+func (p Pattern) match(keywords map[Symbol]bool, env map[Symbol]Expr, el []Expr) (map[Symbol]Expr, bool) {
+	pel := []Expr(p)
+	if len(pel) < len(el) {
+		if s, ok := pel[len(pel)-1].(Symbol); !ok || unwrapSymbol(s) != "..." {
+			return env, false
+		}
+	} else if len(pel) > len(el) {
+		return env, false
+	}
+	for i, e := range pel {
+		if pelel, ok := e.(ExprList); ok {
+			pp := Pattern([]Expr(pelel))
+			if elel, ok2 := el[i].(ExprList); !ok2 {
+				return env, false
+			} else {
+				if nEnv, ok3 := pp.match(keywords, env, []Expr(elel)); ok3 {
+					for k, v := range nEnv {
+						//TODO: Slow, copies entire env even though most of it could already be correct.
+						//nEnv should only contain newly introduced bindings
+						if env[k] != nil && !bool(eqv(Environment{}, env[k], v).(Boolean)) {
+							return env, false
+						}
+						env[k] = v
+					}
+				} else {
+					return env, false
+				}
+			}
+
+		} else if ps, ok2 := e.(Symbol); ok2 {
+			if keywords[ps] {
+				els, ok3 := el[i].(Symbol)
+				if !ok3 || els != ps {
+					return env, false
+				}
+			}
+			if unwrapSymbol(ps) == "..." && i == len(pel)-1 {
+				env[ps] = ExprList(el[len(pel)-1:])
+				continue
+			}
+			if env[ps] != nil && !bool(eqv(Environment{}, env[ps], el[i]).(Boolean)) {
+				return env, false
+			}
+			env[ps] = el[i]
+		} else {
+			return env, false
+		}
+	}
+	return env, true
+}
+
+type transformer interface {
+	transform([]Expr) Expr
+}
+
+type SyntaxRule struct {
+	patterns     []Pattern
+	replacements []Expr
+	//ech, didn't want to do a linear array search for each symbol in the input
+	//keywords[s] will be true if s is a keyword
+	keywords map[Symbol]bool
+}
+
+func (s SyntaxRule) isExpr() {}
+func (s SyntaxRule) transform(el []Expr) Expr {
+	for i, p := range s.patterns {
+		if e, ok := p.match(s.keywords, map[Symbol]Expr{}, el); !ok {
+			continue
+		} else {
+			ret, ok2 := replace(s.replacements[i], e)
+			if !ok2 {
+				//TODO: More info
+				return Error{"syntax-rule: Error encountered while transforming input."}
+			}
+			return ret
+		}
+	}
+	return Error{"Syntax-rule: Input does not match any pattern."}
+}
+
+func replace(e Expr, m map[Symbol]Expr) (Expr, bool) {
+	if s, ok := e.(Symbol); ok {
+		if m[s] != nil {
+			return m[s], true
+		}
+		//TODO:
+		return s, true
+	}
+	el, ok := e.(ExprList)
+	if !ok {
+		return e, false
+	}
+	ret := make([]Expr, len(el))
+	for i, exp := range el {
+		if exps, ok := exp.(Symbol); ok && m[exps] != nil {
+			//TODO: If ... is used anywhere else than at the end of a list?
+			if unwrapSymbol(exps) == "..." && i == len(el)-1 {
+				rem, ok2 := m[exps].(ExprList)
+				if !ok2 {
+					return ExprList(ret), false
+				}
+				//need to make slice smaller to avoid <nil> after the append
+				ret = ret[:len(ret)-1]
+				ret = append(ret, []Expr(rem)...)
+				continue
+			}
+			ret[i] = m[exps]
+		} else if expel, ok := exp.(ExprList); ok {
+			rexpel, ok2 := replace(expel, m)
+			ret[i] = rexpel
+			if !ok2 {
+				return ExprList(ret), false
+			}
+		} else {
+			ret[i] = exp
+		}
+	}
+	return ExprList(ret), true
+}

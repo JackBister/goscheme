@@ -125,7 +125,7 @@ func StandardEnv() Environment {
 		"write":          BuiltIn{"write", 1, 2, write},
 		"write-char":     BuiltIn{"write-char", 1, 2, writechar},
 		//TODO: eq?
-	}, nil}
+	}, map[Symbol]transformer{}, nil}
 	dirc, err := ioutil.ReadDir("std")
 	if err != nil {
 		panic("Error while loading standard library")

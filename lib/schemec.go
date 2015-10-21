@@ -135,6 +135,45 @@ func Eval(e Expr, env Environment) Expr {
 	} else if el := e.(ExprList); len(el) != 0 && bool(symbol_(env, el[0]).(Boolean)) {
 		if s0 := unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
 			return el[1]
+		} else if s0 == "syntax-rules" {
+			if len(el) != 3 {
+				return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
+			}
+			sr := SyntaxRule{keywords: map[Symbol]bool{}}
+			if kw, ok := el[1].(ExprList); !ok {
+				return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
+			} else {
+				for _, exp := range kw {
+					if exps, ok2 := exp.(Symbol); !ok2 {
+						return Error{"syntax-rules: All keywords must be symbols."}
+					} else {
+						sr.keywords[exps] = true
+					}
+				}
+			}
+			if tr, ok := el[2].(ExprList); !ok {
+				return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
+			} else {
+				trl := []Expr(tr)
+				nextIsPattern := true
+				for _, exp := range trl {
+					if nextIsPattern {
+						if expl, ok2 := exp.(ExprList); !ok2 {
+							return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
+						} else {
+							sr.patterns = append(sr.patterns, Pattern(expl))
+							nextIsPattern = false
+						}
+					} else {
+						sr.replacements = append(sr.replacements, exp)
+						nextIsPattern = true
+					}
+				}
+				if !nextIsPattern {
+					return Error{"syntax-rules: More patterns than templates given."}
+				}
+				return sr
+			}
 		} else if s0 == "if" {
 			r := Eval(el[1], env)
 			if _, ok := r.(Boolean); !ok {
@@ -149,32 +188,6 @@ func Eval(e Expr, env Environment) Expr {
 			} else if len(el) > 3 {
 				return Eval(el[3], env)
 			}
-		} else if s0 == "cond" {
-			for i, ex := range el[1:] {
-				if clause, ok := ex.(ExprList); !ok {
-					return Error{"cond: arguments must be expression lists."}
-				} else {
-					if _, ok := clause[0].(Symbol); ok && unwrapSymbol(clause[0]) == "else" {
-						if i != len(el[1:])-1 {
-							return Error{"cond: 'else' must be in the last clause."}
-						}
-						for i2, ex2 := range clause[1:] {
-							if i2 == len(clause[1:])-1 {
-								return Eval(ex2, env)
-							}
-							Eval(ex2, env)
-						}
-					}
-					if Eval(clause[0], env) != Boolean(false) {
-						for i2, ex2 := range clause[1:] {
-							if i2 == len(clause[1:])-1 {
-								return Eval(ex2, env)
-							}
-							Eval(ex2, env)
-						}
-					}
-				}
-			}
 		} else if s0 == "define" {
 			er := Eval(el[2], env)
 			env.Local[unwrapSymbol(el[1])] = er
@@ -188,8 +201,20 @@ func Eval(e Expr, env Environment) Expr {
 				return er
 			}
 			//TODO: Error?
+		} else if s0 == "define-syntax" {
+			if len(el) != 3 {
+				return Error{"define-syntax: Must be of form '(define-syntax <name> <syntax transformer>)'."}
+			}
+			if _, ok := el[1].(Symbol); !ok {
+				return Error{"define-syntax: Must be of form '(define-syntax <name> <syntax transformer>)'."}
+			}
+			if t, ok := Eval(el[2], env).(transformer); !ok {
+				return Error{"define-syntax: Must be of form '(define-syntax <name> <syntax transformer>)'."}
+			} else {
+				env.LocalSyntax[el[1].(Symbol)] = t
+			}
 		} else if s0 == "lambda" {
-			newenv := Environment{map[string]Expr{}, &env}
+			newenv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
 			for k, v := range env.Local {
 				newenv.Local[k] = v
 			}
@@ -218,6 +243,12 @@ func Eval(e Expr, env Environment) Expr {
 			ret := Eval(el[1], env)
 			fmt.Println("time:", time.Now().Sub(t))
 			return ret
+		} else if env.LocalSyntax[Symbol(s0)] != nil {
+			exp := env.LocalSyntax[Symbol(s0)].transform(el)
+			if _, ok := exp.(Error); ok {
+				return exp
+			}
+			return Eval(exp, env)
 		} else {
 			proc := Eval(el[0], env)
 			args := make(ExprList, 0)
