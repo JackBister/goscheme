@@ -134,6 +134,9 @@ func Eval(e Expr, env Environment) Expr {
 		return e
 	} else if el := e.(ExprList); len(el) != 0 && bool(symbol_(env, el[0]).(Boolean)) {
 		if s0 := unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
+			if len(el) != 2 {
+				return Error{"quote: Must be of form '(quote <datum>)'"}
+			}
 			return el[1]
 		} else if s0 == "syntax-rules" {
 			if len(el) != 3 {
@@ -175,6 +178,9 @@ func Eval(e Expr, env Environment) Expr {
 				return sr
 			}
 		} else if s0 == "if" {
+			if len(el) < 3 || len(el) > 4 {
+				return Error{"if: Must be of form '(if <test> <consequent> <alternate>)' or '(if <test> <consequent>)'"}
+			}
 			r := Eval(el[1], env)
 			if _, ok := r.(Boolean); !ok {
 				if r != nil {
@@ -189,12 +195,18 @@ func Eval(e Expr, env Environment) Expr {
 				return Eval(el[3], env)
 			}
 		} else if s0 == "define" {
+			if len(el) != 3 {
+				return Error{"define: Must be of form '(define <variable> <expression>)'"}
+			}
 			er := Eval(el[2], env)
 			env.Local[unwrapSymbol(el[1])] = er
 			if _, ok := er.(Proc); !ok {
 				return er
 			}
 		} else if s0 == "set!" {
+			if len(el) != 3 {
+				return Error{"set!: Must be of form '(set! <variable> <expression>)'"}
+			}
 			if env.find(unwrapSymbol(el[1])) != nil {
 				er := Eval(el[2], env)
 				env.find(unwrapSymbol(el[1]))[unwrapSymbol(el[1])] = er
@@ -214,6 +226,9 @@ func Eval(e Expr, env Environment) Expr {
 				env.LocalSyntax[el[1].(Symbol)] = t
 			}
 		} else if s0 == "lambda" {
+			if len(el) != 3 {
+				return Error{"lambda: Must be of form '(lambda <formals> <body>)'"}
+			}
 			newenv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
 			for k, v := range env.Local {
 				newenv.Local[k] = v
@@ -233,12 +248,18 @@ func Eval(e Expr, env Environment) Expr {
 				return UserProc{true, ExprList{v}, el[2]}
 			}
 		} else if s0 == "go" {
+			if len(el) != 2 {
+				return Error{"go: Must be of form '(go <expression>)'"}
+			}
 			c := make(Channel)
 			go func(c chan Expr) {
 				c <- Eval(el[1], env)
 			}(c)
 			return c
 		} else if s0 == "time" {
+			if len(el) != 2 {
+				return Error{"time: Must be of form '(time <expression>)'"}
+			}
 			t := time.Now()
 			ret := Eval(el[1], env)
 			fmt.Println("time:", time.Now().Sub(t))
