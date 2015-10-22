@@ -43,8 +43,6 @@ func StandardEnv() Environment {
 		"/":                   BuiltIn{"/", 1, -1, div},
 		">":                   BuiltIn{">", 2, -1, gt},
 		"<":                   BuiltIn{"<", 2, -1, lt},
-		">=":                  BuiltIn{">=", 2, -1, ge},
-		"<=":                  BuiltIn{"<=", 2, -1, le},
 		"=":                   BuiltIn{"=", 2, -1, eq},
 		"<-":                  BuiltIn{"<-", 2, 2, send},
 		"->":                  BuiltIn{"->", 1, 1, receive},

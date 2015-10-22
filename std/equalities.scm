@@ -1,3 +1,11 @@
+(define >= (lambda (x y)
+	(if (or (not (number? x)) (not (number? y))) (error ">=: Argument is not a number.")
+	(or (> x y) (= x y)))))
+
+(define <= (lambda (x y)
+	(if (or (not (number? x)) (not (number? y))) (error ">=: Argument is not a number.")
+	(or (< x y) (= x y)))))
+
 (define char=? (lambda (x y)
 	(if (not (and (char? x) (char? y))) (error "char=?: Argument is not a char.")
 	  (= (char->integer x) (char->integer y)))))

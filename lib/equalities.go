@@ -37,38 +37,6 @@ func lt(e Environment, args ...Expr) Expr {
 	return Boolean(true)
 }
 
-func ge(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(Number); !ok {
-		return Error{">=: Argument 1 is not a number."}
-	}
-	last := unwrapNumber(args[0])
-	for i := 1; i < len(args); i++ {
-		if _, ok := args[i].(Number); !ok {
-			return Error{">=: Argument " + strconv.Itoa(i+1) + " is not a number."}
-		}
-		if unwrapNumber(args[i]) > last {
-			return Boolean(false)
-		}
-	}
-	return Boolean(true)
-}
-
-func le(e Environment, args ...Expr) Expr {
-	if _, ok := args[0].(Number); !ok {
-		return Error{"<=: Argument 1 is not a number."}
-	}
-	last := unwrapNumber(args[0])
-	for i := 1; i < len(args); i++ {
-		if _, ok := args[i].(Number); !ok {
-			return Error{"<=: Argument " + strconv.Itoa(i+1) + " is not a number."}
-		}
-		if unwrapNumber(args[i]) < last {
-			return Boolean(false)
-		}
-	}
-	return Boolean(true)
-}
-
 func eq(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(Number); !ok {
 		return Error{"=: Argument 1 is not a number."}
