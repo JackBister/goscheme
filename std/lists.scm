@@ -12,6 +12,18 @@
 	  (if (null? z) (sappend x y)
 	  (apply append (sappend x y) z)))))
 
+;append two lists using a vector
+;Should be faster than the sappend used in append right now, but buggy
+;(define sappend (lambda (li1 li2)
+;	(begin
+;	  (define ret (make-vector (+ (length li1) (length li2))))
+;	  (define tovec (lambda (vec li i)
+;		(if (< i (vector-length vec))
+;		(begin (vector-set! vec i (car li)) (tovec vec (cdr li) (+ i 1))))))
+;	  (tovec ret li1 0)
+;	  (tovec ret li2 (length li1))
+;	  (vector->list ret))))
+
 ;**li** A list of lists to concatenate.
 ;Concatenates all lists in li into one list.
 ;Example: `(concatenate '((1 2 3) (4 5 6))) => (1 2 3 4 5 6)`

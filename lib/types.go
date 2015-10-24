@@ -165,6 +165,14 @@ type ExprList []Expr
 
 func (el ExprList) isExpr() {}
 
+func listtovec(e Environment, args ...Expr) Expr {
+	l, ok := args[0].(ExprList)
+	if !ok {
+		return Error{"list->vector: Argument 1 is not a list."}
+	}
+	return Vector([]Expr(l))
+}
+
 /*
 A port can either be written to or read from.
 bufio.Reader/Writer is used for some conveniences, but ports also must be closeable.

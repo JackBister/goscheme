@@ -101,6 +101,10 @@ func Parse(s *[]string, allowblock bool) Expr {
 			return Parse(s, allowblock)
 		}
 	}
+	if t == "#" && (*s)[0] == "(" {
+		//wew
+		return Vector([]Expr(Parse(s, allowblock).(ExprList)))
+	}
 	if strings.HasPrefix(t, "\"") {
 		if t[len(t)-1] != '"' {
 			return Error{"Missing end quote"}
