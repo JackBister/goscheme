@@ -41,6 +41,11 @@ func main() {
 	}
 }
 
+var replFuncs = map[string]func(){
+	":q":    exit,
+	":quit": exit,
+}
+
 func readLoop() {
 	replStart()
 	for {

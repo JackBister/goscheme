@@ -7,9 +7,8 @@ import (
 
 var reader *bufio.Reader
 
-var replFuncs = map[string]func(){
-	":q":    func() { os.Exit(0) },
-	":quit": func() { os.Exit(0) },
+func exit() {
+	os.Exit(0)
 }
 
 func replStart() {

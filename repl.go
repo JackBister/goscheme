@@ -9,9 +9,9 @@ import (
 
 var t *terminal.Terminal
 
-var replFuncs = map[string]func(){
-	":q":    func() { t.ReleaseFromStdInOut(); os.Exit(0) },
-	":quit": func() { t.ReleaseFromStdInOut(); os.Exit(0) },
+func exit() {
+	t.ReleaseFromStdInOut()
+	os.Exit(0)
 }
 
 func replStart() {
