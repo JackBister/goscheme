@@ -102,8 +102,12 @@ func Parse(s *[]string, allowblock bool) Expr {
 		}
 	}
 	if t == "#" && (*s)[0] == "(" {
+		p := Parse(s, allowblock)
+		if e, ok := p.(Error); ok {
+			return e
+		}
 		//wew
-		return Vector([]Expr(Parse(s, allowblock).(ExprList)))
+		return Vector([]Expr(p.(ExprList)))
 	}
 	if strings.HasPrefix(t, "\"") {
 		if t[len(t)-1] != '"' {
