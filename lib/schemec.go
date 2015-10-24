@@ -229,10 +229,7 @@ func Eval(e Expr, env Environment) Expr {
 			if len(el) != 3 {
 				return Error{"lambda: Must be of form '(lambda <formals> <body>)'"}
 			}
-			newenv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
-			for k, v := range env.Local {
-				newenv.Local[k] = v
-			}
+			newenv := env.copy()
 			if l, ok := el[1].(ExprList); ok {
 				for i, v := range l {
 					if v == Symbol(".") {
@@ -240,12 +237,12 @@ func Eval(e Expr, env Environment) Expr {
 							return Error{"Multiple variables after '.' not allowed!"}
 						}
 						//append(...) removes the . from the list of params
-						return UserProc{true, append(l[:i], l[i+1:]...), el[2]}
+						return UserProc{true, newenv, append(l[:i], l[i+1:]...), el[2]}
 					}
 				}
-				return UserProc{false, el[1].(ExprList), el[2]}
+				return UserProc{false, newenv, el[1].(ExprList), el[2]}
 			} else if v, ok := el[1].(Symbol); ok {
-				return UserProc{true, ExprList{v}, el[2]}
+				return UserProc{true, newenv, ExprList{v}, el[2]}
 			}
 		} else if s0 == "go" {
 			if len(el) != 2 {

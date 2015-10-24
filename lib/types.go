@@ -200,6 +200,8 @@ type UserProc struct {
 	//If true, any excess arguments will be bound to a list stored in the
 	//last parameter symbol.
 	variadic bool
+	//The environment the closure was created in
+	env Environment
 	//A list of symbols that the arguments to the function will be bound to.
 	params ExprList
 	body   Expr
@@ -208,6 +210,11 @@ type UserProc struct {
 func (u UserProc) isExpr() {}
 
 func (u UserProc) eval(e Environment, args ...Expr) Expr {
+	for k, v := range u.env.Local {
+		if e.Local[k] == nil {
+			e.Local[k] = v
+		}
+	}
 	if len(args) < len(u.params) {
 		if u.variadic {
 			if len(args) != len(u.params)-1 {
