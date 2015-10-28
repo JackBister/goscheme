@@ -217,6 +217,10 @@ type UserProc struct {
 
 func (u UserProc) isExpr() {}
 
+func (u UserProc) String() string {
+	return "<closure>"
+}
+
 func (u UserProc) eval(e Environment, args ...Expr) Expr {
 	for k, v := range u.env.Local {
 		if e.Local[k] == nil {
