@@ -213,3 +213,7 @@
 
 ;Because map runs in order in this implementation, map and for-each are equivalent.
 (define for-each map)
+
+(define list->vector (lambda (li)
+	(if ((not (list? li)) (error "list->vector: Argument is not a list."))
+	  (apply vector li))))

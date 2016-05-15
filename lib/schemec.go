@@ -237,7 +237,8 @@ func Eval(e Expr, env Environment) Expr {
 			if len(el) != 3 {
 				return Error{"lambda: Must be of form '(lambda <formals> <body>)'"}
 			}
-			newenv := env.copy()
+			//newenv := env.copy()
+			newenv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
 			if l, ok := el[1].(ExprList); ok {
 				for i, v := range l {
 					if v == Symbol(".") {
@@ -282,8 +283,9 @@ func Eval(e Expr, env Environment) Expr {
 				args = append(args, Eval(arg, env))
 			}
 			if procp, ok2 := proc.(Proc); ok2 {
-				nEnv := env.copy()
-				nEnv.Parent = &env
+				//nEnv := env.copy()
+				//nEnv.Parent = &env
+				nEnv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
 				return procp.eval(nEnv, args...)
 			} else {
 				//TODO

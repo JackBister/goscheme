@@ -27,6 +27,7 @@ func (e *Environment) find(s string) map[string]Expr {
 	}
 	return e.Parent.find(s)
 }
+
 func (e *Environment) copy() Environment {
 	nm := map[string]Expr{}
 	for k, v := range e.Local {
@@ -164,14 +165,6 @@ func (e EvalBlock) isExpr() {}
 type ExprList []Expr
 
 func (el ExprList) isExpr() {}
-
-func listtovec(e Environment, args ...Expr) Expr {
-	l, ok := args[0].(ExprList)
-	if !ok {
-		return Error{"list->vector: Argument 1 is not a list."}
-	}
-	return Vector([]Expr(l))
-}
 
 /*
 A port can either be written to or read from.
