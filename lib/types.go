@@ -162,9 +162,51 @@ type EvalBlock struct {
 
 func (e EvalBlock) isExpr() {}
 
-type ExprList []Expr
+type ExprList struct {
+	car *Expr
+	cdr *ExprList
+}
 
 func (el ExprList) isExpr() {}
+
+func (el ExprList) Length() int {
+	it := &el
+	length := 0
+	for {
+		if it == nil || it.car == nil {
+			break
+		}
+		length++
+		it = it.cdr
+	}
+	return length
+}
+
+func (el ExprList) String() string {
+	return fmt.Sprint(ExprListToSlice(el))
+}
+
+func ExprListToSlice(el ExprList) []Expr {
+	ret := make([]Expr, 0, el.Length())
+	it := &el
+	for {
+		if it.car == nil || it == nil {
+			break
+		}
+		ret = append(ret, *it.car)
+		it = it.cdr
+	}
+	return ret
+}
+
+func SliceToExprList(el []Expr) ExprList {
+	if len(el) == 0 {
+		return ExprList{nil, nil}
+	}
+	car := el[0]
+	cdr := SliceToExprList(el[1:])
+	return ExprList{&car, &cdr}
+}
 
 /*
 A port can either be written to or read from.
@@ -216,21 +258,21 @@ func (u UserProc) eval(e Environment, args ...Expr) Expr {
 			e.Local[k] = v
 		}
 	}
-	if len(args) < len(u.params) {
+	if len(args) < u.params.Length() {
 		if u.variadic {
-			if len(args) != len(u.params)-1 {
-				return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)-1) + ")"}
+			if len(args) != u.params.Length()-1 {
+				return Error{"Too few arguments (need " + strconv.Itoa(u.params.Length()-1) + ")"}
 			}
 		} else {
-			return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)) + ")"}
+			return Error{"Too few arguments (need " + strconv.Itoa(u.params.Length()) + ")"}
 		}
 	}
-	if len(args) > len(u.params) && !u.variadic {
-		return Error{"Too many arguments (need " + strconv.Itoa(len(u.params)) + ")"}
+	if len(args) > u.params.Length() && !u.variadic {
+		return Error{"Too many arguments (need " + strconv.Itoa(u.params.Length()) + ")"}
 	}
-	for i, par := range u.params {
-		if i == len(u.params)-1 && u.variadic {
-			e.Local[unwrapSymbol(par)] = ExprList(args[i:])
+	for i, par := range ExprListToSlice(u.params) {
+		if i == u.params.Length()-1 && u.variadic {
+			e.Local[unwrapSymbol(par)] = SliceToExprList(args[i:])
 		} else {
 			e.Local[unwrapSymbol(par)] = args[i]
 		}
@@ -281,11 +323,11 @@ func (p Pattern) match(keywords map[Symbol]bool, env map[Symbol]Expr, el []Expr)
 	}
 	for i, e := range pel {
 		if pelel, ok := e.(ExprList); ok {
-			pp := Pattern([]Expr(pelel))
+			pp := Pattern(ExprListToSlice(pelel))
 			if elel, ok2 := el[i].(ExprList); !ok2 {
 				return env, false
 			} else {
-				if nEnv, ok3 := pp.match(keywords, env, []Expr(elel)); ok3 {
+				if nEnv, ok3 := pp.match(keywords, env, ExprListToSlice(elel)); ok3 {
 					for k, v := range nEnv {
 						//TODO: Slow, copies entire env even though most of it could already be correct.
 						//nEnv should only contain newly introduced bindings
@@ -307,7 +349,7 @@ func (p Pattern) match(keywords map[Symbol]bool, env map[Symbol]Expr, el []Expr)
 				}
 			}
 			if unwrapSymbol(ps) == "..." && i == len(pel)-1 {
-				env[ps] = ExprList(el[len(pel)-1:])
+				env[ps] = SliceToExprList(el[len(pel)-1:])
 				continue
 			}
 			if env[ps] != nil && !bool(eqv(Environment{}, env[ps], el[i]).(Boolean)) {
@@ -362,18 +404,18 @@ func replace(e Expr, m map[Symbol]Expr) (Expr, bool) {
 	if !ok {
 		return e, false
 	}
-	ret := make([]Expr, len(el))
-	for i, exp := range el {
+	ret := make([]Expr, el.Length())
+	for i, exp := range ExprListToSlice(el) {
 		if exps, ok := exp.(Symbol); ok && m[exps] != nil {
 			//TODO: If ... is used anywhere else than at the end of a list?
-			if unwrapSymbol(exps) == "..." && i == len(el)-1 {
+			if unwrapSymbol(exps) == "..." && i == el.Length()-1 {
 				rem, ok2 := m[exps].(ExprList)
 				if !ok2 {
-					return ExprList(ret), false
+					return SliceToExprList(ret), false
 				}
 				//need to make slice smaller to avoid <nil> after the append
 				ret = ret[:len(ret)-1]
-				ret = append(ret, []Expr(rem)...)
+				ret = append(ret, ExprListToSlice(rem)...)
 				continue
 			}
 			ret[i] = m[exps]
@@ -381,11 +423,11 @@ func replace(e Expr, m map[Symbol]Expr) (Expr, bool) {
 			rexpel, ok2 := replace(expel, m)
 			ret[i] = rexpel
 			if !ok2 {
-				return ExprList(ret), false
+				return SliceToExprList(ret), false
 			}
 		} else {
 			ret[i] = exp
 		}
 	}
-	return ExprList(ret), true
+	return SliceToExprList(ret), true
 }

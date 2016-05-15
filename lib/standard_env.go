@@ -222,12 +222,12 @@ func apply(e Environment, args ...Expr) Expr {
 	if !ok {
 		return Error{"apply: Argument " + strconv.Itoa(len(args)) + " is not an expression list."}
 	}
-	return proc.eval(e, append(argn, argl...)...)
+	return proc.eval(e, append(argn, ExprListToSlice(argl)...)...)
 }
 
 //TODO: 0 args => return the begin proc
 func begin(e Environment, args ...Expr) Expr {
-	return ExprList(args)[len(args)-1]
+	return args[len(args)-1]
 }
 
 func boolean_(e Environment, args ...Expr) Expr {
@@ -244,8 +244,8 @@ func bytestochars(e Environment, args ...Expr) Expr {
 	if l, ok := args[0].(ExprList); !ok {
 		return Error{"bytes->char: argument 1 is not a list."}
 	} else {
-		bl := make([]byte, len(l))
-		for i, v := range l {
+		bl := make([]byte, l.Length())
+		for i, v := range ExprListToSlice(l) {
 			if b, ok := v.(Byte); !ok {
 				return Error{"bytes->char: Element" +
 					strconv.Itoa(i) + " is not a byte."}
@@ -258,7 +258,7 @@ func bytestochars(e Environment, args ...Expr) Expr {
 		for i, r := range rl {
 			el[i] = Character(r)
 		}
-		return ExprList(el)
+		return SliceToExprList(el)
 	}
 }
 
@@ -267,10 +267,10 @@ func car(e Environment, args ...Expr) Expr {
 		return Error{"car: Argument 1 is not a list."}
 	}
 	eList := args[0].(ExprList)
-	if len(eList) == 0 {
+	if eList.car == nil {
 		return Error{"car: List has length 0"}
 	}
-	return eList[0]
+	return *eList.car
 }
 
 func cdr(e Environment, args ...Expr) Expr {
@@ -278,10 +278,10 @@ func cdr(e Environment, args ...Expr) Expr {
 		return Error{"cdr: Argument 1 is not a list."}
 	}
 	eList := args[0].(ExprList)
-	if len(eList) < 2 {
-		return ExprList{}
+	if eList.cdr == nil {
+		return ExprList{nil, nil}
 	}
-	return eList[1:]
+	return *eList.cdr
 }
 
 func chartobytes(e Environment, args ...Expr) Expr {
@@ -297,7 +297,7 @@ func chartobytes(e Environment, args ...Expr) Expr {
 		for i, b := range bl {
 			r[i] = Byte(b)
 		}
-		return ExprList(r)
+		return SliceToExprList(r)
 	}
 }
 
@@ -387,9 +387,9 @@ func charwhitespace_(e Environment, args ...Expr) Expr {
 
 func cons(e Environment, args ...Expr) Expr {
 	if l, ok := args[1].(ExprList); ok {
-		return append(ExprList{args[0]}, l...)
+		return ExprList{&args[0], &l}
 	}
-	return ExprList{args[0], args[1]}
+	return ExprList{&args[0], &ExprList{&args[1], nil}}
 }
 
 func exp(e Environment, args ...Expr) Expr {
@@ -465,11 +465,11 @@ func inttochar(e Environment, args ...Expr) Expr {
 }
 
 func list(e Environment, args ...Expr) Expr {
-	ret := make(ExprList, 0)
+	ret := make([]Expr, 0, len(args))
 	for _, e := range args {
 		ret = append(ret, e)
 	}
-	return ret
+	return SliceToExprList(ret)
 }
 
 func list_(e Environment, args ...Expr) Expr {
@@ -481,7 +481,7 @@ func listtostr(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(ExprList); !ok {
 		return Error{"list->string: Argument 1 is not a list."}
 	}
-	l := args[0].(ExprList)
+	l := ExprListToSlice(args[0].(ExprList))
 	s := make([]rune, len(l))
 	for i, v := range l {
 		if _, ok2 := v.(Character); !ok2 {
@@ -563,7 +563,7 @@ func outputport_(e Environment, args ...Expr) Expr {
 
 func pair_(e Environment, args ...Expr) Expr {
 	l, ok := args[0].(ExprList)
-	return Boolean(ok && len(l) != 0)
+	return Boolean(ok && l.car != nil)
 }
 
 func peekchar(e Environment, args ...Expr) Expr {
@@ -611,7 +611,7 @@ func readbytes(e Environment, args ...Expr) Expr {
 		for i, b := range buf {
 			r[i] = Byte(b)
 		}
-		return ExprList(r)
+		return SliceToExprList(r)
 	}
 }
 
@@ -775,7 +775,7 @@ func strtolist(e Environment, args ...Expr) Expr {
 		for i, c := range v {
 			r[i] = Character(c)
 		}
-		return ExprList(r)
+		return SliceToExprList(r)
 	}
 }
 

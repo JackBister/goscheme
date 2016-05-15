@@ -107,7 +107,7 @@ func Parse(s *[]string, allowblock bool) Expr {
 			return e
 		}
 		//wew
-		return Vector([]Expr(p.(ExprList)))
+		return vector(Environment{}, ExprListToSlice(p.(ExprList))...)
 	}
 	if strings.HasPrefix(t, "\"") {
 		if t[len(t)-1] != '"' {
@@ -116,7 +116,7 @@ func Parse(s *[]string, allowblock bool) Expr {
 		return String(t[1 : len(t)-1])
 	}
 	if t == "(" {
-		l := make(ExprList, 0)
+		l := make([]Expr, 0)
 		for (*s)[0] != ")" {
 			l = append(l, Parse(s, allowblock))
 			if len(*s) == 0 {
@@ -124,7 +124,7 @@ func Parse(s *[]string, allowblock bool) Expr {
 			}
 		}
 		*s = (*s)[1:]
-		return l
+		return SliceToExprList(l)
 	} else if t == ")" {
 		return Error{"Unexpected ')'."}
 	}
@@ -140,8 +140,8 @@ func Eval(e Expr, env Environment) Expr {
 		return v
 	} else if !bool(list_(env, e).(Boolean)) {
 		return e
-	} else if el := e.(ExprList); len(el) != 0 && bool(symbol_(env, el[0]).(Boolean)) {
-		if s0 := unwrapSymbol(e.(ExprList)[0]); s0 == "quote" {
+	} else if el := ExprListToSlice(e.(ExprList)); len(el) != 0 && bool(symbol_(env, el[0]).(Boolean)) {
+		if s0 := unwrapSymbol(*e.(ExprList).car); s0 == "quote" {
 			if len(el) != 2 {
 				return Error{"quote: Must be of form '(quote <datum>)'"}
 			}
@@ -154,7 +154,7 @@ func Eval(e Expr, env Environment) Expr {
 			if kw, ok := el[1].(ExprList); !ok {
 				return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
 			} else {
-				for _, exp := range kw {
+				for _, exp := range ExprListToSlice(kw) {
 					if exps, ok2 := exp.(Symbol); !ok2 {
 						return Error{"syntax-rules: All keywords must be symbols."}
 					} else {
@@ -165,14 +165,14 @@ func Eval(e Expr, env Environment) Expr {
 			if tr, ok := el[2].(ExprList); !ok {
 				return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
 			} else {
-				trl := []Expr(tr)
+				trl := ExprListToSlice(tr)
 				nextIsPattern := true
 				for _, exp := range trl {
 					if nextIsPattern {
 						if expl, ok2 := exp.(ExprList); !ok2 {
 							return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
 						} else {
-							sr.patterns = append(sr.patterns, Pattern(expl))
+							sr.patterns = append(sr.patterns, Pattern(ExprListToSlice(expl)))
 							nextIsPattern = false
 						}
 					} else {
@@ -240,18 +240,19 @@ func Eval(e Expr, env Environment) Expr {
 			//newenv := env.copy()
 			newenv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
 			if l, ok := el[1].(ExprList); ok {
-				for i, v := range l {
+				expl := ExprListToSlice(l)
+				for i, v := range expl {
 					if v == Symbol(".") {
-						if i != len(l)-2 {
+						if i != l.Length()-2 {
 							return Error{"Multiple variables after '.' not allowed!"}
 						}
 						//append(...) removes the . from the list of params
-						return UserProc{true, newenv, append(l[:i], l[i+1:]...), el[2]}
+						return UserProc{true, newenv, SliceToExprList(append(expl[:i], expl[i+1:]...)), el[2]}
 					}
 				}
 				return UserProc{false, newenv, el[1].(ExprList), el[2]}
 			} else if v, ok := el[1].(Symbol); ok {
-				return UserProc{true, newenv, ExprList{v}, el[2]}
+				return UserProc{true, newenv, SliceToExprList([]Expr{v}), el[2]}
 			}
 		} else if s0 == "go" {
 			if len(el) != 2 {
@@ -278,7 +279,7 @@ func Eval(e Expr, env Environment) Expr {
 			return Eval(exp, env)
 		} else {
 			proc := Eval(el[0], env)
-			args := make(ExprList, 0)
+			args := make([]Expr, 0)
 			for _, arg := range el[1:] {
 				args = append(args, Eval(arg, env))
 			}
@@ -289,7 +290,7 @@ func Eval(e Expr, env Environment) Expr {
 				return procp.eval(nEnv, args...)
 			} else {
 				//TODO
-				fmt.Println("Error: Expected procedure")
+				fmt.Println("Error: Expected procedure, have", proc)
 			}
 		}
 	}
