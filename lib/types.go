@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"math/cmplx"
 	"strconv"
 	"unicode/utf8"
 )
@@ -153,6 +154,74 @@ func decodeCharacter(s string) Character {
 type Channel chan Expr
 
 func (c Channel) isExpr() {}
+
+type Complex complex128
+
+func (c Complex) isExpr() {}
+
+func complex_(e Environment, args ...Expr) Expr {
+	_, ok := args[0].(Complex)
+	return Boolean(ok)
+}
+
+func makepolar(e Environment, args ...Expr) Expr {
+	f1, ok := args[0].(Number)
+	if !ok {
+		return Error{"make-polar: Argument 1 is not a number."}
+	}
+	f2, ok2 := args[1].(Number)
+	if !ok2 {
+		return Error{"make-polar: Argument 2 is not a number."}
+	}
+	//For some reason "Rect" returns the polar form?
+	return Complex(cmplx.Rect(float64(f1), float64(f2)))
+}
+
+func makerect(e Environment, args ...Expr) Expr {
+	f1, ok := args[0].(Number)
+	if !ok {
+		return Error{"make-rectangular: Argument 1 is not a number."}
+	}
+	f2, ok2 := args[1].(Number)
+	if !ok2 {
+		return Error{"make-rectangular: Argument 2 is not a number."}
+	}
+	return Complex(complex(float64(f1), float64(f2)))
+}
+
+func angle(e Environment, args ...Expr) Expr {
+	c, ok := args[0].(Complex)
+	if !ok {
+		return Error{"angle: Argument 1 is not a complex number."}
+	}
+	_, theta := cmplx.Polar(complex128(c))
+	return Number(theta)
+}
+
+func imagpart(e Environment, args ...Expr) Expr {
+	c, ok := args[0].(Complex)
+	if !ok {
+		return Error{"imag-part: Argument 1 is not a complex number."}
+	}
+	return Number(imag(complex128(c)))
+}
+
+func magnitude(e Environment, args ...Expr) Expr {
+	c, ok := args[0].(Complex)
+	if !ok {
+		return Error{"magnitude: Argument 1 is not a complex number."}
+	}
+	r, _ := cmplx.Polar(complex128(c))
+	return Number(r)
+}
+
+func realpart(e Environment, args ...Expr) Expr {
+	c, ok := args[0].(Complex)
+	if !ok {
+		return Error{"real-part: Argument 1 is not a complex number."}
+	}
+	return Number(real(complex128(c)))
+}
 
 //An EvalBlock wraps an expression and delays evaluation of the expr.
 //Primarily(only?) used for actions involving apostrophes.
