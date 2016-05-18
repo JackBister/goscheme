@@ -19,6 +19,8 @@ type Environment struct {
 	Parent      *Environment
 }
 
+func (e Environment) isExpr() {}
+
 func (e *Environment) find(s string) map[string]Expr {
 	if e.Local[s] != nil {
 		return e.Local
@@ -305,6 +307,7 @@ this interface.
 */
 type Proc interface {
 	eval(Environment, ...Expr) Expr
+	isExpr()
 }
 
 type UserProc struct {

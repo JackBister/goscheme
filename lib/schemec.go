@@ -279,20 +279,23 @@ func Eval(e Expr, env Environment) Expr {
 			return Eval(exp, env)
 		} else {
 			proc := Eval(el[0], env)
-			args := make([]Expr, 0)
-			for _, arg := range el[1:] {
-				args = append(args, Eval(arg, env))
-			}
 			if procp, ok2 := proc.(Proc); ok2 {
-				//nEnv := env.copy()
-				//nEnv.Parent = &env
-				nEnv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
-				return procp.eval(nEnv, args...)
+				elcopy := make([]Expr, len(el))
+				copy(elcopy, el)
+				elcopy[0] = procp
+				return Eval(SliceToExprList(elcopy), env)
 			} else {
 				//TODO
 				fmt.Println("Error: Expected procedure, have", proc)
 			}
 		}
+	} else if p, ok := el[0].(Proc); ok {
+		args := make([]Expr, 0, len(el[1:]))
+		for _, arg := range el[1:] {
+			args = append(args, Eval(arg, env))
+		}
+		nEnv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
+		return p.eval(nEnv, args...)
 	}
 	return Symbol("")
 }

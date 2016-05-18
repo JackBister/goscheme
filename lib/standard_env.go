@@ -33,6 +33,25 @@ import (
 	"unicode/utf8"
 )
 
+//TODO: Obviously not complete yet. Also will include some non-R5RS stuff since e.g. the "go" keyword is baked inside Eval.
+func R5RSNullEnv() Environment {
+	e := Environment{map[string]Expr{}, map[Symbol]transformer{}, nil}
+	in, err := ioutil.ReadFile("std/r5rssyntax.scm")
+	if err != nil {
+		//TODO:
+		panic("Error loading standard syntax.")
+	}
+	ins := string(in)
+	t := Tokenize(ins)
+	for len(t) != 0 {
+		r := Eval(Parse(&t, true), e)
+		if s, ok := r.(Symbol); !ok || string(s) != "" {
+			fmt.Println(r)
+		}
+	}
+	return e
+}
+
 func StandardEnv() Environment {
 	e := Environment{map[string]Expr{
 		"#f":                  Boolean(false),
@@ -84,6 +103,7 @@ func StandardEnv() Environment {
 		"eqv?":             BuiltIn{"eqv?", 2, 2, eqv},
 		"error":            BuiltIn{"error", 1, 1, serror},
 		"error?":           BuiltIn{"error?", 1, 1, error_},
+		"eval":				BuiltIn{"eval", 1, 2, eval},
 		"file-size":        BuiltIn{"file-size", 1, 1, filesize},
 		"floor":            BuiltIn{"floor", 1, 1, floor},
 		"flush":            BuiltIn{"flush", 0, 1, flush},
@@ -91,6 +111,7 @@ func StandardEnv() Environment {
 		"input-port?":      BuiltIn{"input-port?", 1, 1, inputport_},
 		"integer->char":    BuiltIn{"integer->char", 1, 1, inttochar},
 		"integer?":         BuiltIn{"integer?", 1, 1, integer_},
+		"interaction-environment":	BuiltIn{"interaction-environment", 0, 0, interactionEnv},
 		"list":             BuiltIn{"list", 0, -1, list},
 		"list?":            BuiltIn{"list?", 1, 1, list_},
 		"list->string":     BuiltIn{"list->string", 1, 1, listtostr},
@@ -103,6 +124,7 @@ func StandardEnv() Environment {
 		"modulo":           BuiltIn{"modulo", 2, 2, modulo},
 		"newline":          BuiltIn{"newline", 1, 2, newline},
 		"not":              BuiltIn{"not", 1, 1, not},
+		"null-environment":	BuiltIn{"null-environment", 0, 1, nullEnv},
 		"number->string":   BuiltIn{"number->string", 1, 1, numtostr},
 		"number?":          BuiltIn{"number?", 1, 1, number_},
 		"open-input-file":  BuiltIn{"open-input-file", 1, 1, openinfile},
@@ -420,6 +442,21 @@ func error_(e Environment, args ...Expr) Expr {
 	return Boolean(ok)
 }
 
+func eval(e Environment, args ...Expr) Expr {
+	l, ok := args[0].(ExprList)
+	if !ok {
+		return Error{"eval: Argument 1 is not a list."}
+	}
+	if len(args) == 1 {
+		return Eval(l, e)
+	}
+	env, ok2 := args[1].(Environment)
+	if !ok2 {
+		return Error{"eval: Argument 2 is not an environment."}
+	}
+	return Eval(l, env)
+}
+
 func filesize(e Environment, args ...Expr) Expr {
 	if s, ok := args[0].(String); !ok {
 		return Error{"file-size: Argument 1 is not a string."}
@@ -458,6 +495,10 @@ func integer_(e Environment, args ...Expr) Expr {
 	v, ok := args[0].(Number)
 	v2, _ := round(e, v).(Number)
 	return Boolean(ok && v == v2)
+}
+
+func interactionEnv(e Environment, args ...Expr) Expr {
+	return StandardEnv()
 }
 
 func inttochar(e Environment, args ...Expr) Expr {
@@ -524,6 +565,11 @@ func not(e Environment, args ...Expr) Expr {
 		return Boolean(true)
 	}
 	return Boolean(!(bool(args[0].(Boolean))))
+}
+
+func nullEnv(e Environment, args ...Expr) Expr {
+	//TODO: Should take number arg for versioning.
+	return R5RSNullEnv()
 }
 
 func numtostr(e Environment, args ...Expr) Expr {
