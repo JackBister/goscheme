@@ -278,6 +278,7 @@ func Eval(e Expr, env Environment) Expr {
 			}
 			return Eval(exp, env)
 		} else {
+			//Kinda sucks having to repeat this here and below. Problem is the s0 cast is too convenient.
 			proc := Eval(el[0], env)
 			if procp, ok2 := proc.(Proc); ok2 {
 				elcopy := make([]Expr, len(el))
@@ -296,6 +297,17 @@ func Eval(e Expr, env Environment) Expr {
 		}
 		nEnv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
 		return p.eval(nEnv, args...)
+	} else {
+		proc := Eval(el[0], env)
+		if procp, ok2 := proc.(Proc); ok2 {
+			elcopy := make([]Expr, len(el))
+			copy(elcopy, el)
+			elcopy[0] = procp
+			return Eval(SliceToExprList(elcopy), env)
+		} else {
+			//TODO
+			fmt.Println("Error: Expected procedure, have", proc)
+		}
 	}
 	return Symbol("")
 }
