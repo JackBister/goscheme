@@ -45,18 +45,6 @@ func vector_(e Environment, args ...Expr) Expr {
 	return Boolean(ok)
 }
 
-func vectorfill(e Environment, args ...Expr) Expr {
-	v, ok := args[0].(Vector)
-	if !ok {
-		return Error{"vector-fill!: Argument 1 is not a vector."}
-	}
-	vl := []Expr(v)
-	for i := range vl {
-		vl[i] = args[1]
-	}
-	return Vector(vl)
-}
-
 func vectorlen(e Environment, args ...Expr) Expr {
 	v, ok := args[0].(Vector)
 	if !ok {
@@ -88,13 +76,4 @@ func vectorset(e Environment, args ...Expr) Expr {
 	}
 	[]Expr(v)[int(i)] = args[2]
 	return v
-}
-
-
-func vectolist(e Environment, args ...Expr) Expr {
-	v, ok := args[0].(Vector)
-	if !ok {
-		return Error{"vector->list: Argument 1 is not a vector."}
-	}
-	return ExprList([]Expr(v))
 }

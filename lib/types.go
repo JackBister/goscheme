@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"math/cmplx"
 	"strconv"
 	"unicode/utf8"
 )
@@ -18,6 +19,8 @@ type Environment struct {
 	Parent      *Environment
 }
 
+func (e Environment) isExpr() {}
+
 func (e *Environment) find(s string) map[string]Expr {
 	if e.Local[s] != nil {
 		return e.Local
@@ -27,6 +30,7 @@ func (e *Environment) find(s string) map[string]Expr {
 	}
 	return e.Parent.find(s)
 }
+
 func (e *Environment) copy() Environment {
 	nm := map[string]Expr{}
 	for k, v := range e.Local {
@@ -153,6 +157,74 @@ type Channel chan Expr
 
 func (c Channel) isExpr() {}
 
+type Complex complex128
+
+func (c Complex) isExpr() {}
+
+func complex_(e Environment, args ...Expr) Expr {
+	_, ok := args[0].(Complex)
+	return Boolean(ok)
+}
+
+func makepolar(e Environment, args ...Expr) Expr {
+	f1, ok := args[0].(Number)
+	if !ok {
+		return Error{"make-polar: Argument 1 is not a number."}
+	}
+	f2, ok2 := args[1].(Number)
+	if !ok2 {
+		return Error{"make-polar: Argument 2 is not a number."}
+	}
+	//For some reason "Rect" returns the polar form?
+	return Complex(cmplx.Rect(float64(f1), float64(f2)))
+}
+
+func makerect(e Environment, args ...Expr) Expr {
+	f1, ok := args[0].(Number)
+	if !ok {
+		return Error{"make-rectangular: Argument 1 is not a number."}
+	}
+	f2, ok2 := args[1].(Number)
+	if !ok2 {
+		return Error{"make-rectangular: Argument 2 is not a number."}
+	}
+	return Complex(complex(float64(f1), float64(f2)))
+}
+
+func angle(e Environment, args ...Expr) Expr {
+	c, ok := args[0].(Complex)
+	if !ok {
+		return Error{"angle: Argument 1 is not a complex number."}
+	}
+	_, theta := cmplx.Polar(complex128(c))
+	return Number(theta)
+}
+
+func imagpart(e Environment, args ...Expr) Expr {
+	c, ok := args[0].(Complex)
+	if !ok {
+		return Error{"imag-part: Argument 1 is not a complex number."}
+	}
+	return Number(imag(complex128(c)))
+}
+
+func magnitude(e Environment, args ...Expr) Expr {
+	c, ok := args[0].(Complex)
+	if !ok {
+		return Error{"magnitude: Argument 1 is not a complex number."}
+	}
+	r, _ := cmplx.Polar(complex128(c))
+	return Number(r)
+}
+
+func realpart(e Environment, args ...Expr) Expr {
+	c, ok := args[0].(Complex)
+	if !ok {
+		return Error{"real-part: Argument 1 is not a complex number."}
+	}
+	return Number(real(complex128(c)))
+}
+
 //An EvalBlock wraps an expression and delays evaluation of the expr.
 //Primarily(only?) used for actions involving apostrophes.
 type EvalBlock struct {
@@ -161,16 +233,50 @@ type EvalBlock struct {
 
 func (e EvalBlock) isExpr() {}
 
-type ExprList []Expr
+type ExprList struct {
+	car *Expr
+	cdr *ExprList
+}
 
 func (el ExprList) isExpr() {}
 
-func listtovec(e Environment, args ...Expr) Expr {
-	l, ok := args[0].(ExprList)
-	if !ok {
-		return Error{"list->vector: Argument 1 is not a list."}
+func (el ExprList) Length() int {
+	it := &el
+	length := 0
+	for {
+		if it == nil || it.car == nil {
+			break
+		}
+		length++
+		it = it.cdr
 	}
-	return Vector([]Expr(l))
+	return length
+}
+
+func (el ExprList) String() string {
+	return fmt.Sprint(ExprListToSlice(el))
+}
+
+func ExprListToSlice(el ExprList) []Expr {
+	ret := make([]Expr, 0, el.Length())
+	it := &el
+	for {
+		if it.car == nil || it == nil {
+			break
+		}
+		ret = append(ret, *it.car)
+		it = it.cdr
+	}
+	return ret
+}
+
+func SliceToExprList(el []Expr) ExprList {
+	if len(el) == 0 {
+		return ExprList{nil, nil}
+	}
+	car := el[0]
+	cdr := SliceToExprList(el[1:])
+	return ExprList{&car, &cdr}
 }
 
 /*
@@ -201,6 +307,7 @@ this interface.
 */
 type Proc interface {
 	eval(Environment, ...Expr) Expr
+	isExpr()
 }
 
 type UserProc struct {
@@ -227,21 +334,21 @@ func (u UserProc) eval(e Environment, args ...Expr) Expr {
 			e.Local[k] = v
 		}
 	}
-	if len(args) < len(u.params) {
+	if len(args) < u.params.Length() {
 		if u.variadic {
-			if len(args) != len(u.params)-1 {
-				return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)-1) + ")"}
+			if len(args) != u.params.Length()-1 {
+				return Error{"Too few arguments (need " + strconv.Itoa(u.params.Length()-1) + ")"}
 			}
 		} else {
-			return Error{"Too few arguments (need " + strconv.Itoa(len(u.params)) + ")"}
+			return Error{"Too few arguments (need " + strconv.Itoa(u.params.Length()) + ")"}
 		}
 	}
-	if len(args) > len(u.params) && !u.variadic {
-		return Error{"Too many arguments (need " + strconv.Itoa(len(u.params)) + ")"}
+	if len(args) > u.params.Length() && !u.variadic {
+		return Error{"Too many arguments (need " + strconv.Itoa(u.params.Length()) + ")"}
 	}
-	for i, par := range u.params {
-		if i == len(u.params)-1 && u.variadic {
-			e.Local[unwrapSymbol(par)] = ExprList(args[i:])
+	for i, par := range ExprListToSlice(u.params) {
+		if i == u.params.Length()-1 && u.variadic {
+			e.Local[unwrapSymbol(par)] = SliceToExprList(args[i:])
 		} else {
 			e.Local[unwrapSymbol(par)] = args[i]
 		}
@@ -292,11 +399,11 @@ func (p Pattern) match(keywords map[Symbol]bool, env map[Symbol]Expr, el []Expr)
 	}
 	for i, e := range pel {
 		if pelel, ok := e.(ExprList); ok {
-			pp := Pattern([]Expr(pelel))
+			pp := Pattern(ExprListToSlice(pelel))
 			if elel, ok2 := el[i].(ExprList); !ok2 {
 				return env, false
 			} else {
-				if nEnv, ok3 := pp.match(keywords, env, []Expr(elel)); ok3 {
+				if nEnv, ok3 := pp.match(keywords, env, ExprListToSlice(elel)); ok3 {
 					for k, v := range nEnv {
 						//TODO: Slow, copies entire env even though most of it could already be correct.
 						//nEnv should only contain newly introduced bindings
@@ -318,7 +425,7 @@ func (p Pattern) match(keywords map[Symbol]bool, env map[Symbol]Expr, el []Expr)
 				}
 			}
 			if unwrapSymbol(ps) == "..." && i == len(pel)-1 {
-				env[ps] = ExprList(el[len(pel)-1:])
+				env[ps] = SliceToExprList(el[len(pel)-1:])
 				continue
 			}
 			if env[ps] != nil && !bool(eqv(Environment{}, env[ps], el[i]).(Boolean)) {
@@ -373,18 +480,18 @@ func replace(e Expr, m map[Symbol]Expr) (Expr, bool) {
 	if !ok {
 		return e, false
 	}
-	ret := make([]Expr, len(el))
-	for i, exp := range el {
+	ret := make([]Expr, el.Length())
+	for i, exp := range ExprListToSlice(el) {
 		if exps, ok := exp.(Symbol); ok && m[exps] != nil {
 			//TODO: If ... is used anywhere else than at the end of a list?
-			if unwrapSymbol(exps) == "..." && i == len(el)-1 {
+			if unwrapSymbol(exps) == "..." && i == el.Length()-1 {
 				rem, ok2 := m[exps].(ExprList)
 				if !ok2 {
-					return ExprList(ret), false
+					return SliceToExprList(ret), false
 				}
 				//need to make slice smaller to avoid <nil> after the append
 				ret = ret[:len(ret)-1]
-				ret = append(ret, []Expr(rem)...)
+				ret = append(ret, ExprListToSlice(rem)...)
 				continue
 			}
 			ret[i] = m[exps]
@@ -392,11 +499,11 @@ func replace(e Expr, m map[Symbol]Expr) (Expr, bool) {
 			rexpel, ok2 := replace(expel, m)
 			ret[i] = rexpel
 			if !ok2 {
-				return ExprList(ret), false
+				return SliceToExprList(ret), false
 			}
 		} else {
 			ret[i] = exp
 		}
 	}
-	return ExprList(ret), true
+	return SliceToExprList(ret), true
 }

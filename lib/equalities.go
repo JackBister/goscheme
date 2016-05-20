@@ -84,14 +84,21 @@ func builtineqv(a, b BuiltIn) bool {
 }
 
 func listeqv(a, b ExprList) bool {
-	if len(a) != len(b) {
+	if a.Length() != b.Length() {
 		return false
 	}
-	for i, v := range a {
+	ita := a
+	itb := b
+	for {
+		if ita.car == nil {
+			break
+		}
 		//fuck.
-		if !bool(eqv(Environment{}, v, b[i]).(Boolean)) {
+		if !bool(eqv(Environment{}, *ita.car, *itb.car).(Boolean)) {
 			return false
 		}
+		ita = *ita.cdr
+		itb = *itb.cdr
 	}
 	return true
 }

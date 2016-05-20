@@ -33,6 +33,25 @@ import (
 	"unicode/utf8"
 )
 
+//TODO: Obviously not complete yet. Also will include some non-R5RS stuff since e.g. the "go" keyword is baked inside Eval.
+func R5RSNullEnv() Environment {
+	e := Environment{map[string]Expr{}, map[Symbol]transformer{}, nil}
+	in, err := ioutil.ReadFile("std/r5rssyntax.scm")
+	if err != nil {
+		//TODO:
+		panic("Error loading standard syntax.")
+	}
+	ins := string(in)
+	t := Tokenize(ins)
+	for len(t) != 0 {
+		r := Eval(Parse(&t, true), e)
+		if s, ok := r.(Symbol); !ok || string(s) != "" {
+			fmt.Println(r)
+		}
+	}
+	return e
+}
+
 func StandardEnv() Environment {
 	e := Environment{map[string]Expr{
 		"#f":                  Boolean(false),
@@ -47,6 +66,7 @@ func StandardEnv() Environment {
 		"<-":                  BuiltIn{"<-", 2, 2, send},
 		"->":                  BuiltIn{"->", 1, 1, receive},
 		"acos":                BuiltIn{"acos", 1, 1, acos},
+		"angle":			BuiltIn{"angle", 1, 1, angle},
 		"apply":               BuiltIn{"apply", 2, -1, apply},
 		"asin":                BuiltIn{"asin", 1, 1, asin},
 		"atan":                BuiltIn{"atan", 1, 1, atan},
@@ -58,6 +78,7 @@ func StandardEnv() Environment {
 		"char-ready?":         BuiltIn{"char-ready?", 0, 1, charready_},
 		"char?":               BuiltIn{"char?", 1, 1, char_},
 		"close":               BuiltIn{"close", 1, 1, sclose},
+		"complex?":				BuiltIn{"complex?", 1, 1, complex_},
 		"car":                 BuiltIn{"car", 1, 1, car},
 		"cdr":                 BuiltIn{"cdr", 1, 1, cdr},
 		"chan":                BuiltIn{"chan", 0, 0, schan},
@@ -82,22 +103,28 @@ func StandardEnv() Environment {
 		"eqv?":             BuiltIn{"eqv?", 2, 2, eqv},
 		"error":            BuiltIn{"error", 1, 1, serror},
 		"error?":           BuiltIn{"error?", 1, 1, error_},
+		"eval":				BuiltIn{"eval", 1, 2, eval},
 		"file-size":        BuiltIn{"file-size", 1, 1, filesize},
 		"floor":            BuiltIn{"floor", 1, 1, floor},
 		"flush":            BuiltIn{"flush", 0, 1, flush},
+		"imag-part":		BuiltIn{"imag-part", 1, 1, imagpart},
 		"input-port?":      BuiltIn{"input-port?", 1, 1, inputport_},
 		"integer->char":    BuiltIn{"integer->char", 1, 1, inttochar},
 		"integer?":         BuiltIn{"integer?", 1, 1, integer_},
+		"interaction-environment":	BuiltIn{"interaction-environment", 0, 0, interactionEnv},
 		"list":             BuiltIn{"list", 0, -1, list},
 		"list?":            BuiltIn{"list?", 1, 1, list_},
 		"list->string":     BuiltIn{"list->string", 1, 1, listtostr},
-		"list->vector":	BuiltIn{"list->vector", 1, 1, listtovec},
 		"load":             BuiltIn{"load", 1, 1, load},
 		"log":              BuiltIn{"log", 1, 1, log},
-		"make-vector":	BuiltIn{"vector-length", 1, 2, makevec},
+		"magnitude":		BuiltIn{"magnitude", 1, 1, magnitude},
+		"make-polar":		BuiltIn{"make-polar", 2, 2, makepolar},
+		"make-rectangular":	BuiltIn{"make-rectangular", 2, 2, makerect},
+		"make-vector":	BuiltIn{"make-vector", 1, 2, makevec},
 		"modulo":           BuiltIn{"modulo", 2, 2, modulo},
 		"newline":          BuiltIn{"newline", 1, 2, newline},
 		"not":              BuiltIn{"not", 1, 1, not},
+		"null-environment":	BuiltIn{"null-environment", 0, 1, nullEnv},
 		"number->string":   BuiltIn{"number->string", 1, 1, numtostr},
 		"number?":          BuiltIn{"number?", 1, 1, number_},
 		"open-input-file":  BuiltIn{"open-input-file", 1, 1, openinfile},
@@ -107,6 +134,7 @@ func StandardEnv() Environment {
 		"peek-char":        BuiltIn{"peek-char", 0, 1, peekchar},
 		//"pmap": BuiltIn{"pmap", 2, -1, pmap},
 		"procedure?":     BuiltIn{"procedure?", 1, 1, procedure_},
+		"real-part":	BuiltIn{"real-part", 1, 1, realpart},
 		"read-bytes":     BuiltIn{"read-bytes", 1, 2, readbytes},
 		"read-char":      BuiltIn{"read-char", 0, 1, readchar},
 		"remainder":      BuiltIn{"remainder", 2, 2, remainder},
@@ -122,13 +150,10 @@ func StandardEnv() Environment {
 		"symbol?":        BuiltIn{"symbol?", 1, 1, symbol_},
 		"tan":            BuiltIn{"tan", 1, 1, tan},
 		"truncate":       BuiltIn{"truncate", 1, 1, truncate},
-		"vector":	BuiltIn{"vector", 1, -1, vector},
 		"vector?":	BuiltIn{"vector?", 1, 1, vector_},
-		"vector-fill!":	BuiltIn{"vector-fill!", 2, 2, vectorfill},
 		"vector-length":	BuiltIn{"vector-length", 1, 1, vectorlen},
 		"vector-ref":	BuiltIn{"vector-ref", 2, 2, vectorref},
 		"vector-set!":	BuiltIn{"vector-set!", 3, 3, vectorset},
-		"vector->list":	BuiltIn{"vector->list", 1, 1, vectolist},
 		"write":          BuiltIn{"write", 1, 2, write},
 		"write-char":     BuiltIn{"write-char", 1, 2, writechar},
 		//TODO: eq?
@@ -226,12 +251,12 @@ func apply(e Environment, args ...Expr) Expr {
 	if !ok {
 		return Error{"apply: Argument " + strconv.Itoa(len(args)) + " is not an expression list."}
 	}
-	return proc.eval(e, append(argn, argl...)...)
+	return proc.eval(e, append(argn, ExprListToSlice(argl)...)...)
 }
 
 //TODO: 0 args => return the begin proc
 func begin(e Environment, args ...Expr) Expr {
-	return ExprList(args)[len(args)-1]
+	return args[len(args)-1]
 }
 
 func boolean_(e Environment, args ...Expr) Expr {
@@ -248,8 +273,8 @@ func bytestochars(e Environment, args ...Expr) Expr {
 	if l, ok := args[0].(ExprList); !ok {
 		return Error{"bytes->char: argument 1 is not a list."}
 	} else {
-		bl := make([]byte, len(l))
-		for i, v := range l {
+		bl := make([]byte, l.Length())
+		for i, v := range ExprListToSlice(l) {
 			if b, ok := v.(Byte); !ok {
 				return Error{"bytes->char: Element" +
 					strconv.Itoa(i) + " is not a byte."}
@@ -262,7 +287,7 @@ func bytestochars(e Environment, args ...Expr) Expr {
 		for i, r := range rl {
 			el[i] = Character(r)
 		}
-		return ExprList(el)
+		return SliceToExprList(el)
 	}
 }
 
@@ -271,10 +296,10 @@ func car(e Environment, args ...Expr) Expr {
 		return Error{"car: Argument 1 is not a list."}
 	}
 	eList := args[0].(ExprList)
-	if len(eList) == 0 {
+	if eList.car == nil {
 		return Error{"car: List has length 0"}
 	}
-	return eList[0]
+	return *eList.car
 }
 
 func cdr(e Environment, args ...Expr) Expr {
@@ -282,10 +307,10 @@ func cdr(e Environment, args ...Expr) Expr {
 		return Error{"cdr: Argument 1 is not a list."}
 	}
 	eList := args[0].(ExprList)
-	if len(eList) < 2 {
-		return ExprList{}
+	if eList.cdr == nil {
+		return ExprList{nil, nil}
 	}
-	return eList[1:]
+	return *eList.cdr
 }
 
 func chartobytes(e Environment, args ...Expr) Expr {
@@ -301,7 +326,7 @@ func chartobytes(e Environment, args ...Expr) Expr {
 		for i, b := range bl {
 			r[i] = Byte(b)
 		}
-		return ExprList(r)
+		return SliceToExprList(r)
 	}
 }
 
@@ -391,9 +416,9 @@ func charwhitespace_(e Environment, args ...Expr) Expr {
 
 func cons(e Environment, args ...Expr) Expr {
 	if l, ok := args[1].(ExprList); ok {
-		return append(ExprList{args[0]}, l...)
+		return ExprList{&args[0], &l}
 	}
-	return ExprList{args[0], args[1]}
+	return ExprList{&args[0], &ExprList{&args[1], nil}}
 }
 
 func exp(e Environment, args ...Expr) Expr {
@@ -415,6 +440,21 @@ func serror(e Environment, args ...Expr) Expr {
 func error_(e Environment, args ...Expr) Expr {
 	_, ok := args[0].(Error)
 	return Boolean(ok)
+}
+
+func eval(e Environment, args ...Expr) Expr {
+	l, ok := args[0].(ExprList)
+	if !ok {
+		return Error{"eval: Argument 1 is not a list."}
+	}
+	if len(args) == 1 {
+		return Eval(l, e)
+	}
+	env, ok2 := args[1].(Environment)
+	if !ok2 {
+		return Error{"eval: Argument 2 is not an environment."}
+	}
+	return Eval(l, env)
 }
 
 func filesize(e Environment, args ...Expr) Expr {
@@ -457,6 +497,10 @@ func integer_(e Environment, args ...Expr) Expr {
 	return Boolean(ok && v == v2)
 }
 
+func interactionEnv(e Environment, args ...Expr) Expr {
+	return StandardEnv()
+}
+
 func inttochar(e Environment, args ...Expr) Expr {
 	if v, ok := args[0].(Number); !ok {
 		return Error{"integer->char: Argument 1 is not an integer"}
@@ -469,11 +513,11 @@ func inttochar(e Environment, args ...Expr) Expr {
 }
 
 func list(e Environment, args ...Expr) Expr {
-	ret := make(ExprList, 0)
+	ret := make([]Expr, 0, len(args))
 	for _, e := range args {
 		ret = append(ret, e)
 	}
-	return ret
+	return SliceToExprList(ret)
 }
 
 func list_(e Environment, args ...Expr) Expr {
@@ -485,7 +529,7 @@ func listtostr(e Environment, args ...Expr) Expr {
 	if _, ok := args[0].(ExprList); !ok {
 		return Error{"list->string: Argument 1 is not a list."}
 	}
-	l := args[0].(ExprList)
+	l := ExprListToSlice(args[0].(ExprList))
 	s := make([]rune, len(l))
 	for i, v := range l {
 		if _, ok2 := v.(Character); !ok2 {
@@ -521,6 +565,11 @@ func not(e Environment, args ...Expr) Expr {
 		return Boolean(true)
 	}
 	return Boolean(!(bool(args[0].(Boolean))))
+}
+
+func nullEnv(e Environment, args ...Expr) Expr {
+	//TODO: Should take number arg for versioning.
+	return R5RSNullEnv()
 }
 
 func numtostr(e Environment, args ...Expr) Expr {
@@ -567,7 +616,7 @@ func outputport_(e Environment, args ...Expr) Expr {
 
 func pair_(e Environment, args ...Expr) Expr {
 	l, ok := args[0].(ExprList)
-	return Boolean(ok && len(l) != 0)
+	return Boolean(ok && l.car != nil)
 }
 
 func peekchar(e Environment, args ...Expr) Expr {
@@ -615,7 +664,7 @@ func readbytes(e Environment, args ...Expr) Expr {
 		for i, b := range buf {
 			r[i] = Byte(b)
 		}
-		return ExprList(r)
+		return SliceToExprList(r)
 	}
 }
 
@@ -779,7 +828,7 @@ func strtolist(e Environment, args ...Expr) Expr {
 		for i, c := range v {
 			r[i] = Character(c)
 		}
-		return ExprList(r)
+		return SliceToExprList(r)
 	}
 }
 
