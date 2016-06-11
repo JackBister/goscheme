@@ -384,59 +384,172 @@ type Error struct {
 func (e Error) Error() string { return e.s }
 func (e Error) isExpr()       {}
 
-type Pattern []Expr
+// type Pattern []Expr
 
-//returns a map of bindings from symbol in the pattern to expression in the
-//input expressionlist and a bool which is true if the match was successful
-func (p Pattern) match(keywords map[Symbol]bool, env map[Symbol]Expr, el []Expr) (map[Symbol]Expr, bool) {
-	pel := []Expr(p)
-	if len(pel) < len(el) {
-		if s, ok := pel[len(pel)-1].(Symbol); !ok || unwrapSymbol(s) != "..." {
-			return env, false
+type Match struct {
+	direct   Expr
+	ellipsis []Expr
+}
+
+type Pattern Expr
+
+func replace(curr, last Expr, m map[Symbol]Match) (Expr, bool) {
+	if s, ok := curr.(Symbol); ok {
+		if m[s].direct != nil {
+			return m[s].direct, true
 		}
-	} else if len(pel) > len(el) {
-		return env, false
+		if string(s) == "..." {
+			lastSymbol, ok2 := last.(Symbol)
+			if !ok2 {
+				return nil, false
+			}
+			return Vector(m[lastSymbol].ellipsis), true
+		}
+		return curr, true
 	}
-	for i, e := range pel {
-		if pelel, ok := e.(ExprList); ok {
-			pp := Pattern(ExprListToSlice(pelel))
-			if elel, ok2 := el[i].(ExprList); !ok2 {
-				return env, false
+	var elSlice []Expr
+	var isExprList, isVector bool
+	if _, isExprList = curr.(ExprList); isExprList {
+		elSlice = ExprListToSlice(curr.(ExprList))
+	} else {
+		_, isVector = curr.(Vector)
+		if isVector {
+			elSlice = []Expr(curr.(Vector))
+		}
+	}
+	if isExprList || isVector {
+		var lastExpr Expr
+		rel := make([]Expr, 0, len(elSlice))
+		for _, v := range elSlice {
+			e, ok2 := replace(v, lastExpr, m)
+			if !ok2 {
+				return nil, false
+			}
+			lastExpr = v
+			//if v is an ellipsis the result will be a vector that should be expanded in place instead of replacing the variable
+			if s, ok2 := v.(Symbol); ok2 && string(s) == "..." {
+				rel = append(rel, []Expr(e.(Vector))...)
 			} else {
-				if nEnv, ok3 := pp.match(keywords, env, ExprListToSlice(elel)); ok3 {
-					for k, v := range nEnv {
-						//TODO: Slow, copies entire env even though most of it could already be correct.
-						//nEnv should only contain newly introduced bindings
-						if env[k] != nil && !bool(eqv(Environment{}, env[k], v).(Boolean)) {
-							return env, false
-						}
-						env[k] = v
-					}
-				} else {
-					return env, false
-				}
+				rel = append(rel, e)
 			}
+		}
+		if isExprList {
+			return SliceToExprList(rel), true
+		}
+		return Vector(rel), true
+	}
+	//TODO:
+	return curr, true
+}
 
-		} else if ps, ok2 := e.(Symbol); ok2 {
-			if keywords[ps] {
-				els, ok3 := el[i].(Symbol)
-				if !ok3 || els != ps {
-					return env, false
-				}
-			}
-			if unwrapSymbol(ps) == "..." && i == len(pel)-1 {
-				env[ps] = SliceToExprList(el[len(pel)-1:])
-				continue
-			}
-			if env[ps] != nil && !bool(eqv(Environment{}, env[ps], el[i]).(Boolean)) {
-				return env, false
-			}
-			env[ps] = el[i]
-		} else {
+/*
+	literals: if literals[k] == true, k is a literal
+	env: The matched pattern variables so far, used for recursion. Should be returned at the end of the function.
+	e: The expression to match against the pattern
+	ellipsis: Whether the matching is being done for an ellipsis at the end of a list/vector.
+
+	Returns a map with bindings from symbols in patterns to expressions in the input and whether the pattern matched the input.
+*/
+func match(p Pattern, literals map[Symbol]bool, env map[Symbol]Match, e Expr, ellipsis bool) (map[Symbol]Match, bool) {
+	var elSlice, pelSlice []Expr
+	var isExprList, isVector bool
+
+	if _, isExprList = p.(ExprList); isExprList {
+		if _, ok := e.(ExprList); !ok {
 			return env, false
 		}
+		elSlice = ExprListToSlice(e.(ExprList))
+		pelSlice = ExprListToSlice(p.(ExprList))
 	}
-	return env, true
+	if _, isVector = p.(Vector); isVector {
+		if _, ok := e.(Vector); !ok {
+			return env, false
+		}
+		elSlice = []Expr(e.(Vector))
+		pelSlice = []Expr(p.(Vector))
+	}
+
+	if !isExprList && !isVector {
+		if ps, ok2 := p.(Symbol); ok2 {
+			es, ok3 := e.(Symbol)
+			if literals[ps] || (ok3 && literals[es]) {
+				//The pattern or input is a literal
+				return env, ps == es
+			}
+			//The pattern is a pattern variable
+			pv, exists := env[ps]
+			if !exists {
+				env[ps] = Match{}
+			}
+
+			if ellipsis {
+				pv.ellipsis = append(env[ps].ellipsis, e)
+			} else {
+				pv.direct = e
+			}
+			env[ps] = pv
+			return env, true
+		}
+		//TODO: else if vector, else return (equal? p i)
+		return env, bool(eq(Environment{}, p, e).(Boolean))
+	} else {
+		if len(elSlice) < len(pelSlice) {
+			if ps, ok3 := pelSlice[len(pelSlice)-1].(Symbol); !ok3 || string(ps) != "..." {
+				//There is no case where the input matches the pattern while also being shorter than the pattern (unless there is an ellipsis that matches nothing)
+				//From here on we can be a bit reckless with indexing into elSlice since we know it's at least as big as pelSlice, so any valid index in pelSlice is valid in elSlice.
+				return env, false
+			}
+		}
+		if ps, ok3 := pelSlice[len(pelSlice)-2].(Symbol); ok3 {
+			//"P is of the form (P1 P2 ... Pn . Px) and F is a list or improper list of n or more elements whose first n elements match P1 through Pn and whose nth cdr matches Px,"
+			if string(ps) == "." {
+				//n = len(pelSlice)-2
+				for i, v := range pelSlice[:len(pelSlice)-2] {
+					nEnv, match := match(v.(Pattern), literals, env, elSlice[i], false)
+					if !match {
+						return nEnv, false
+					}
+					env = nEnv
+				}
+				//matches "the nth cdr" (the elements following n) in the input with the element after the dot
+				return match(pelSlice[len(pelSlice)-1].(Pattern), literals, env, SliceToExprList(elSlice[len(pelSlice)-1:]), false)
+			}
+		}
+		if ps, ok3 := pelSlice[len(pelSlice)-1].(Symbol); ok3 {
+			//"P is of the form (P1 ... Pn Px ...) and F is a proper list of n or more elements whose first n elements match P1 through Pn and whose remaining elements each match Px,"
+			if string(ps) == "..." {
+				//n = len(pelSlice)-2
+				for i, v := range pelSlice[:len(pelSlice)-1] {
+					nEnv, match := match(v.(Pattern), literals, env, elSlice[i], false)
+					if !match {
+						return nEnv, false
+					}
+					env = nEnv
+				}
+				//Elements after n
+				for _, v := range elSlice[len(pelSlice)-1:] {
+					nEnv, match := match(pelSlice[len(pelSlice)-2].(Pattern), literals, env, v, true)
+					if !match {
+						return nEnv, false
+					}
+					env = nEnv
+				}
+				return env, true
+			}
+		}
+		if len(pelSlice) == len(elSlice) {
+			//"P is of the form (P1 ... Pn) and F is a list of n elements that match P1 through Pn,"
+			for i, v := range pelSlice {
+				nEnv, match := match(v.(Pattern), literals, env, elSlice[i], ellipsis)
+				if !match {
+					return nEnv, false
+				}
+				env = nEnv
+			}
+			return env, true
+		}
+	}
+	return env, false
 }
 
 type transformer interface {
@@ -454,10 +567,10 @@ type SyntaxRule struct {
 func (s SyntaxRule) isExpr() {}
 func (s SyntaxRule) transform(el []Expr) Expr {
 	for i, p := range s.patterns {
-		if e, ok := p.match(s.keywords, map[Symbol]Expr{}, el); !ok {
+		if e, ok := match(p, s.keywords, map[Symbol]Match{}, SliceToExprList(el), false); !ok {
 			continue
 		} else {
-			ret, ok2 := replace(s.replacements[i], e)
+			ret, ok2 := replace(s.replacements[i], nil, e)
 			if !ok2 {
 				//TODO: More info
 				return Error{"syntax-rule: Error encountered while transforming input."}
@@ -465,45 +578,5 @@ func (s SyntaxRule) transform(el []Expr) Expr {
 			return ret
 		}
 	}
-	return Error{"Syntax-rule: Input does not match any pattern."}
-}
-
-func replace(e Expr, m map[Symbol]Expr) (Expr, bool) {
-	if s, ok := e.(Symbol); ok {
-		if m[s] != nil {
-			return m[s], true
-		}
-		//TODO:
-		return s, true
-	}
-	el, ok := e.(ExprList)
-	if !ok {
-		return e, false
-	}
-	ret := make([]Expr, el.Length())
-	for i, exp := range ExprListToSlice(el) {
-		if exps, ok := exp.(Symbol); ok && m[exps] != nil {
-			//TODO: If ... is used anywhere else than at the end of a list?
-			if unwrapSymbol(exps) == "..." && i == el.Length()-1 {
-				rem, ok2 := m[exps].(ExprList)
-				if !ok2 {
-					return SliceToExprList(ret), false
-				}
-				//need to make slice smaller to avoid <nil> after the append
-				ret = ret[:len(ret)-1]
-				ret = append(ret, ExprListToSlice(rem)...)
-				continue
-			}
-			ret[i] = m[exps]
-		} else if expel, ok := exp.(ExprList); ok {
-			rexpel, ok2 := replace(expel, m)
-			ret[i] = rexpel
-			if !ok2 {
-				return SliceToExprList(ret), false
-			}
-		} else {
-			ret[i] = exp
-		}
-	}
-	return SliceToExprList(ret), true
+	return Error{"syntax-rule: Input does not match any pattern."}
 }

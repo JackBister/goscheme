@@ -172,7 +172,7 @@ func Eval(e Expr, env Environment) Expr {
 						if expl, ok2 := exp.(ExprList); !ok2 {
 							return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
 						} else {
-							sr.patterns = append(sr.patterns, Pattern(ExprListToSlice(expl)))
+							sr.patterns = append(sr.patterns, Pattern(expl))
 							nextIsPattern = false
 						}
 					} else {
