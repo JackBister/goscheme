@@ -2,6 +2,7 @@ package goscheme
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"math/cmplx"
@@ -254,7 +255,21 @@ func (el ExprList) Length() int {
 }
 
 func (el ExprList) String() string {
-	return fmt.Sprint(ExprListToSlice(el))
+	var b bytes.Buffer
+	b.WriteString("(")
+	it := &el
+	for {
+		if it == nil || it.car == nil {
+			break
+		}
+		fmt.Fprint(&b, *it.car)
+		if it.cdr != nil && it.cdr.car != nil {
+			b.WriteString(" ")
+		}
+		it = it.cdr
+	}
+	b.WriteString(")")
+	return b.String()
 }
 
 func ExprListToSlice(el ExprList) []Expr {
