@@ -138,7 +138,7 @@ func Eval(e Expr, env Environment) Expr {
 		return eb.e
 	} else if v, ok := e.(String); ok {
 		return v
-	} else if !bool(list_(env, e).(Boolean)) {
+	} else if _, ok := e.(ExprList); !ok {
 		return e
 	} else if el := ExprListToSlice(e.(ExprList)); len(el) != 0 && bool(symbol_(env, el[0]).(Boolean)) {
 		if s0 := unwrapSymbol(*e.(ExprList).car); s0 == "quote" {
@@ -151,40 +151,40 @@ func Eval(e Expr, env Environment) Expr {
 				return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
 			}
 			sr := SyntaxRule{keywords: map[Symbol]bool{}}
-			if kw, ok := el[1].(ExprList); !ok {
+			kw, ok := el[1].(ExprList)
+			if !ok {
 				return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
-			} else {
-				for _, exp := range ExprListToSlice(kw) {
-					if exps, ok2 := exp.(Symbol); !ok2 {
-						return Error{"syntax-rules: All keywords must be symbols."}
-					} else {
-						sr.keywords[exps] = true
+			}
+			for _, exp := range ExprListToSlice(kw) {
+				exps, ok := exp.(Symbol)
+				if !ok {
+					return Error{"syntax-rules: All keywords must be symbols."}
+				}
+				sr.keywords[exps] = true
+			}
+			tr, ok := el[2].(ExprList)
+			if !ok {
+				return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
+			}
+			trl := ExprListToSlice(tr)
+			nextIsPattern := true
+			for _, exp := range trl {
+				if nextIsPattern {
+					expl, ok := exp.(ExprList)
+					if !ok {
+						return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
 					}
+					sr.patterns = append(sr.patterns, Pattern(expl))
+					nextIsPattern = false
+				} else {
+					sr.replacements = append(sr.replacements, exp)
+					nextIsPattern = true
 				}
 			}
-			if tr, ok := el[2].(ExprList); !ok {
-				return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
-			} else {
-				trl := ExprListToSlice(tr)
-				nextIsPattern := true
-				for _, exp := range trl {
-					if nextIsPattern {
-						if expl, ok2 := exp.(ExprList); !ok2 {
-							return Error{"syntax-rules: Must be of form '(syntax-rules (<keywords>) ((<pattern>) (<template>) ... (<pattern>) (<template>)))'."}
-						} else {
-							sr.patterns = append(sr.patterns, Pattern(expl))
-							nextIsPattern = false
-						}
-					} else {
-						sr.replacements = append(sr.replacements, exp)
-						nextIsPattern = true
-					}
-				}
-				if !nextIsPattern {
-					return Error{"syntax-rules: More patterns than templates given."}
-				}
-				return sr
+			if !nextIsPattern {
+				return Error{"syntax-rules: More patterns than templates given."}
 			}
+			return sr
 		} else if s0 == "if" {
 			if len(el) < 3 || len(el) > 4 {
 				return Error{"if: Must be of form '(if <test> <consequent> <alternate>)' or '(if <test> <consequent>)'"}
