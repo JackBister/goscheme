@@ -334,7 +334,11 @@ type UserProc struct {
 	env Environment
 	//A list of symbols that the arguments to the function will be bound to.
 	params ExprList
-	body   Expr
+	//A list of arguments which have already been passed (for currying)
+	//e.g. if a 3-parameter function is called with 2 parameters partialArgs will
+	//contain those args and the UserProc will be returned so the last arg can be fulfilled
+	partialArgs []Expr
+	body        Expr
 }
 
 func (u UserProc) isExpr() {}
@@ -349,23 +353,31 @@ func (u UserProc) eval(e Environment, args ...Expr) Expr {
 			e.Local[k] = v
 		}
 	}
-	if len(args) < u.params.Length() {
-		if u.variadic {
-			if len(args) != u.params.Length()-1 {
-				return Error{"Too few arguments (need " + strconv.Itoa(u.params.Length()-1) + ")"}
+	if len(args)+len(u.partialArgs) < u.params.Length() {
+		if !u.variadic || len(args) != u.params.Length()-1 {
+			for _, arg := range args {
+				u.partialArgs = append(u.partialArgs, arg)
 			}
-		} else {
-			return Error{"Too few arguments (need " + strconv.Itoa(u.params.Length()) + ")"}
+			return u
 		}
 	}
-	if len(args) > u.params.Length() && !u.variadic {
-		return Error{"Too many arguments (need " + strconv.Itoa(u.params.Length()) + ")"}
+	if len(args)+len(u.partialArgs) > u.params.Length() && !u.variadic {
+		return Error{"Too many arguments (need " + strconv.Itoa(u.params.Length()) + ")."}
 	}
 	for i, par := range ExprListToSlice(u.params) {
+		isPartialArg := i < len(u.partialArgs)
 		if i == u.params.Length()-1 && u.variadic {
-			e.Local[unwrapSymbol(par)] = SliceToExprList(args[i:])
+			if isPartialArg {
+				e.Local[unwrapSymbol(par)] = SliceToExprList(u.partialArgs[i:])
+			} else {
+				e.Local[unwrapSymbol(par)] = SliceToExprList(args[i-len(u.partialArgs):])
+			}
 		} else {
-			e.Local[unwrapSymbol(par)] = args[i]
+			if isPartialArg {
+				e.Local[unwrapSymbol(par)] = u.partialArgs[i]
+			} else {
+				e.Local[unwrapSymbol(par)] = args[i-len(u.partialArgs)]
+			}
 		}
 	}
 	return Eval(u.body, e)
@@ -378,18 +390,29 @@ type BuiltIn struct {
 	minParams, maxParams int
 	//The go function this struct represents.
 	fn func(Environment, ...Expr) Expr
+	//Same as UserProc.partialArgs
+	partialArgs []Expr
 }
 
 func (b BuiltIn) isExpr() {}
 
 func (b BuiltIn) eval(e Environment, args ...Expr) Expr {
-	if len(args) < b.minParams {
-		return Error{b.name + ": Too few arguments (need " + strconv.Itoa(b.minParams) + ")"}
+	if len(args)+len(b.partialArgs) < b.minParams {
+		for _, arg := range args {
+			b.partialArgs = append(b.partialArgs, arg)
+		}
+		return b
 	}
-	if len(args) > b.maxParams && b.maxParams != -1 {
+	if len(args)+len(b.partialArgs) > b.maxParams && b.maxParams != -1 {
 		return Error{b.name + ": Too many arguments (max " + strconv.Itoa(b.maxParams) + ")"}
 	}
-	return b.fn(e, args...)
+	return b.fn(e, append(b.partialArgs, args...)...)
+}
+
+//NewBuiltIn exists to maintain one interface for creating new built ins even if the struct layout changes.
+//Maybe a pimpl style thing would work in the future?
+func NewBuiltIn(name string, minParams, maxParams int, fn func(Environment, ...Expr) Expr) BuiltIn {
+	return BuiltIn{name, minParams, maxParams, fn, []Expr{}}
 }
 
 type Error struct {

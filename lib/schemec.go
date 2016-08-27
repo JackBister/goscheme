@@ -247,12 +247,12 @@ func Eval(e Expr, env Environment) Expr {
 							return Error{"Multiple variables after '.' not allowed!"}
 						}
 						//append(...) removes the . from the list of params
-						return UserProc{true, newenv, SliceToExprList(append(expl[:i], expl[i+1:]...)), el[2]}
+						return UserProc{true, newenv, SliceToExprList(append(expl[:i], expl[i+1:]...)), []Expr{}, el[2]}
 					}
 				}
-				return UserProc{false, newenv, el[1].(ExprList), el[2]}
+				return UserProc{false, newenv, el[1].(ExprList), []Expr{}, el[2]}
 			} else if v, ok := el[1].(Symbol); ok {
-				return UserProc{true, newenv, SliceToExprList([]Expr{v}), el[2]}
+				return UserProc{true, newenv, SliceToExprList([]Expr{v}), []Expr{}, el[2]}
 			}
 		} else if s0 == "go" {
 			if len(el) != 2 {
