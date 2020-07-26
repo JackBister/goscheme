@@ -60,7 +60,7 @@ func Tokenize(s string) []string {
 		if strings.ContainsRune(ignoreString, r) {
 			continue
 		}
-		if r == '\'' || r == '(' || r == ')' {
+		if r == ':' || r == '\'' || r == '(' || r == ')' {
 			b.WriteString(" " + string(r) + " ")
 			continue
 		}
@@ -92,48 +92,77 @@ func Parse(s *[]string, allowblock bool) Expr {
 	if len(*s) == 0 {
 		return Error{"Unexpected EOF."}
 	}
+	var ret Expr
 	t := (*s)[0]
 	*s = (*s)[1:]
+
 	if t == "'" {
 		if allowblock {
-			return EvalBlock{Parse(s, false)}
+			ret = EvalBlock{Parse(s, false)}
 		} else {
-			return Parse(s, allowblock)
+			ret = Parse(s, allowblock)
 		}
 	}
 	if t == "#" && (*s)[0] == "(" {
 		p := Parse(s, allowblock)
 		if e, ok := p.(Error); ok {
-			return e
+			ret = e
 		}
 		//wew
-		return vector(Environment{}, ExprListToSlice(p.(ExprList))...)
+		ret = vector(Environment{}, ExprListToSlice(p.(ExprList))...)
 	}
 	if strings.HasPrefix(t, "\"") {
 		if t[len(t)-1] != '"' {
-			return Error{"Missing end quote"}
+			ret = Error{"Missing end quote"}
 		}
-		return String(t[1 : len(t)-1])
+		ret = String(t[1 : len(t)-1])
 	}
 	if t == "(" {
 		l := make([]Expr, 0)
 		for (*s)[0] != ")" {
 			l = append(l, Parse(s, allowblock))
 			if len(*s) == 0 {
-				return Error{"Missing ')'"}
+				ret = Error{"Missing ')'"}
 			}
 		}
 		*s = (*s)[1:]
-		return SliceToExprList(l)
+		ret = SliceToExprList(l)
 	} else if t == ")" {
-		return Error{"Unexpected ')'."}
+		ret = Error{"Unexpected ')'."}
 	}
-	return atom(t)
+	if ret == nil {
+		ret = atom(t)
+	}
+	//allowblock == true => we are not inside an evalblock parse
+	//without the allowblock check, the type info gets swallowed into the evalblock,
+	//but the type check should be done against the result of evaluating the evalblock
+	if len(*s) > 0 && (*s)[0] == ":" && allowblock {
+		if len(*s) < 2 {
+			return Error{"Missing type name."}
+		}
+		*s = (*s)[1:]
+		exprType := Parse(s, true)
+		ret = ExprAndExpectedType{ret, exprType}
+	}
+	return ret
 }
 
 func Eval(e Expr, env Environment) Expr {
 	if bool(symbol_(env, e).(Boolean)) {
 		return env.find(unwrapSymbol(e))[unwrapSymbol(e)]
+	} else if t, ok := e.(ExprAndExpectedType); ok {
+		expectedType := t.getType(env)
+		res := Eval(t.e, env)
+		rt, ok := res.(TypedExpr)
+		if ok {
+			actualType := rt.getType(env)
+			if actualType.isEqual(expectedType) {
+				return res
+			}
+			return Error{"Expected type " + expectedType.String() + ", have " + actualType.String() + "."}
+		}
+		//Should never happen in the future
+		return Error{"Expected type " + expectedType.String() + " but expression has no type."}
 	} else if eb, ok := e.(EvalBlock); ok {
 		return eb.e
 	} else if v, ok := e.(String); ok {
@@ -238,7 +267,7 @@ func Eval(e Expr, env Environment) Expr {
 				return Error{"lambda: Must be of form '(lambda <formals> <body>)'"}
 			}
 			//newenv := env.copy()
-			newenv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
+			newenv := Environment{map[string]Expr{}, map[Symbol]transformer{}, map[Symbol]Type{}, &env}
 			if l, ok := el[1].(ExprList); ok {
 				expl := ExprListToSlice(l)
 				for i, v := range expl {
@@ -287,7 +316,7 @@ func Eval(e Expr, env Environment) Expr {
 				return Eval(SliceToExprList(elcopy), env)
 			} else {
 				//TODO
-				fmt.Println("Error: Expected procedure, have", proc)
+				return Error{fmt.Sprint("Error: Expected procedure, have", proc)}
 			}
 		}
 	} else if p, ok := el[0].(Proc); ok {
@@ -295,7 +324,7 @@ func Eval(e Expr, env Environment) Expr {
 		for _, arg := range el[1:] {
 			args = append(args, Eval(arg, env))
 		}
-		nEnv := Environment{map[string]Expr{}, map[Symbol]transformer{}, &env}
+		nEnv := Environment{map[string]Expr{}, map[Symbol]transformer{}, map[Symbol]Type{}, &env}
 		return p.eval(nEnv, args...)
 	} else {
 		proc := Eval(el[0], env)
@@ -306,7 +335,7 @@ func Eval(e Expr, env Environment) Expr {
 			return Eval(SliceToExprList(elcopy), env)
 		} else {
 			//TODO
-			fmt.Println("Error: Expected procedure, have", proc)
+			return Error{fmt.Sprint("Error: Expected procedure, have", proc)}
 		}
 	}
 	return Symbol("")

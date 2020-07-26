@@ -35,7 +35,7 @@ import (
 
 //TODO: Obviously not complete yet. Also will include some non-R5RS stuff since e.g. the "go" keyword is baked inside Eval.
 func R5RSNullEnv() Environment {
-	e := Environment{map[string]Expr{}, map[Symbol]transformer{}, nil}
+	e := Environment{map[string]Expr{}, map[Symbol]transformer{}, map[Symbol]Type{}, nil}
 	in, err := ioutil.ReadFile("std/r5rssyntax.scm")
 	if err != nil {
 		//TODO:
@@ -150,6 +150,7 @@ func StandardEnv() Environment {
 		"symbol?":        NewBuiltIn("symbol?", 1, 1, symbol_),
 		"tan":            NewBuiltIn("tan", 1, 1, tan),
 		"truncate":       NewBuiltIn("truncate", 1, 1, truncate),
+		"typeof":         NewBuiltIn("typeof", 1, 1, typeof),
 		"vector?":        NewBuiltIn("vector?", 1, 1, vector_),
 		"vector-length":  NewBuiltIn("vector-length", 1, 1, vectorlen),
 		"vector-ref":     NewBuiltIn("vector-ref", 2, 2, vectorref),
@@ -157,7 +158,22 @@ func StandardEnv() Environment {
 		"write":          NewBuiltIn("write", 1, 2, write),
 		"write-char":     NewBuiltIn("write-char", 1, 2, writechar),
 		//TODO: eq?
-	}, map[Symbol]transformer{}, nil}
+	}, map[Symbol]transformer{}, map[Symbol]Type{
+		"Boolean":     Type{"Boolean", false, false, []Type{}, nil},
+		"Byte":        Type{"Byte", false, false, []Type{}, nil},
+		"Character":   Type{"Character", false, false, []Type{}, nil},
+		"Channel":     Type{"Channel", false, false, []Type{}, nil},
+		"Complex":     Type{"Complex", false, false, []Type{}, nil},
+		"Environment": Type{"Environment", false, false, []Type{}, nil},
+		"Error":       Type{"Error", false, false, []Type{}, nil},
+		"Number":      Type{"Number", false, false, []Type{}, nil},
+		"Port":        Type{"Port", false, false, []Type{}, nil},
+		"String":      Type{"String", false, false, []Type{}, nil},
+		"Symbol":      Type{"Symbol", false, false, []Type{}, nil},
+		"SyntaxRule":  Type{"SyntaxRule", false, false, []Type{}, nil},
+		"Type":        Type{"Type", false, false, []Type{}, nil},
+		"Undefined":   Type{"Undefined", false, false, []Type{}, nil},
+	}, nil}
 	dirc, err := ioutil.ReadDir("std")
 	if err != nil {
 		panic("Error while loading standard library")
@@ -855,6 +871,14 @@ func strtosym(e Environment, args ...Expr) Expr {
 func string_(e Environment, args ...Expr) Expr {
 	_, ok := args[0].(String)
 	return Boolean(ok)
+}
+
+func typeof(e Environment, args ...Expr) Expr {
+	if t, ok := args[0].(TypedExpr); !ok {
+		return Error{"typeof: Argument 1 has no type."}
+	} else {
+		return t.getType(e)
+	}
 }
 
 func write(e Environment, args ...Expr) Expr {

@@ -73,6 +73,12 @@ func eqv(e Environment, args ...Expr) Expr {
 		}
 	}
 
+	if v1, ok := args[0].(Type); ok {
+		if v2, ok2 := args[1].(Type); ok2 {
+			return Boolean(v1.isEqual(v2))
+		}
+	}
+
 	return Boolean(args[0] == args[1])
 }
 

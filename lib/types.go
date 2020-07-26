@@ -14,12 +14,25 @@ type Expr interface {
 	isExpr()
 }
 
+/*
+	TypedExpr represents an expression which has a type.
+	The endgame is that Expr could be removed entirely because all expressions will be typed.
+*/
+type TypedExpr interface {
+	getType(e Environment) Type
+}
+
 type Environment struct {
 	Local       map[string]Expr
 	LocalSyntax map[Symbol]transformer
-	Parent      *Environment
+	//TODO: Types could be put in the regular Local map.
+	LocalTypes map[Symbol]Type
+	Parent     *Environment
 }
 
+func (e Environment) getType(env Environment) Type {
+	return env.findType(Symbol("Environment"))
+}
 func (e Environment) isExpr() {}
 
 func (e *Environment) find(s string) map[string]Expr {
@@ -32,6 +45,19 @@ func (e *Environment) find(s string) map[string]Expr {
 	return e.Parent.find(s)
 }
 
+/*
+	findType looks up a symbol first in the LocalTypes map, then recurses on the parent.
+*/
+func (e *Environment) findType(s Symbol) Type {
+	if t, ok := e.LocalTypes[s]; ok {
+		return t
+	}
+	if e.Parent == nil {
+		return e.findType("Undefined")
+	}
+	return e.Parent.findType(s)
+}
+
 func (e *Environment) copy() Environment {
 	nm := map[string]Expr{}
 	for k, v := range e.Local {
@@ -41,7 +67,192 @@ func (e *Environment) copy() Environment {
 	for k, v := range e.LocalSyntax {
 		nsm[k] = v
 	}
-	return Environment{nm, nsm, e.Parent}
+	ntm := map[Symbol]Type{}
+	for k, v := range e.LocalTypes {
+		ntm[k] = v
+	}
+	return Environment{nm, nsm, ntm, e.Parent}
+}
+
+/*
+	A Type is attached to an expression.
+	A Type can either be "just a type", or a composition of other types.
+	If a Type is a function, the parameters field will contain a slice of the types of each parameter
+	and the returnType field will hold a pointer to the type of the returned value of the function.
+	If a Type is a list, the parameters field will contain a slice of the types of each element in the list.
+
+	TODO:
+	returnType isn't used anywhere.
+	Vector isn't typed.
+*/
+type Type struct {
+	name   string
+	isFunc bool
+	isList bool
+	//Parameters when isFunc == true, list content when isList == true
+	parameters []Type
+	returnType *Type
+}
+
+/*
+	The type of a Type value is the Type "Type". Wew.
+*/
+func (t Type) getType(env Environment) Type {
+	return env.findType(Symbol("Type"))
+}
+func (t Type) isExpr() {}
+
+/*
+	Compares two types.
+	Two types are equal if:
+		(1) Both types are functions and their slices of parameters contains the same types and their returnType is the same.
+		(2) Both types are lists and their slices contain the same types.
+		(3) Their names are equal.
+*/
+func (t Type) isEqual(rhs Type) bool {
+	if t.isFunc {
+		if !rhs.isFunc {
+			return false
+		}
+		if len(t.parameters) != len(rhs.parameters) {
+			return false
+		}
+		for i, p := range t.parameters {
+			if !p.isEqual(rhs.parameters[i]) {
+				return false
+			}
+		}
+		fmt.Println(t.parameters, rhs.parameters)
+		fmt.Println(t.returnType, rhs.returnType)
+		if t.returnType != nil {
+			if rhs.returnType == nil || !t.returnType.isEqual(*rhs.returnType) {
+				return false
+			}
+		} else if rhs.returnType != nil {
+			return false
+		}
+		return true
+	}
+	if t.isList {
+		if !rhs.isList {
+			return false
+		}
+		if len(t.parameters) != len(rhs.parameters) {
+			return false
+		}
+		for i, p := range t.parameters {
+			if !p.isEqual(rhs.parameters[i]) {
+				return false
+			}
+		}
+		return true
+	}
+	return t.name == rhs.name
+}
+
+/*
+	Returns a string representation of the type. In the future this may be more fleshed out.
+*/
+func (t Type) String() string {
+	return t.name
+}
+
+/*
+	An ExprAndExpectedType is the result of an expression of the form <Expr> : <Type-Expr>.
+	e represents <Expr>, t represents <Type-Expr>
+*/
+type ExprAndExpectedType struct {
+	e Expr
+	t Expr
+}
+
+func (e ExprAndExpectedType) isExpr() {}
+
+/*
+	getType does a limited evaluation of t in the environment env to determine the type of the expression, and then returns that type.
+
+	TODO: Should it just be a straight up Eval call?
+*/
+func (e ExprAndExpectedType) getType(env Environment) Type {
+	if ts, ok := e.t.(Symbol); ok {
+		return env.findType(ts)
+	}
+	if tt, ok := e.t.(Type); ok {
+		return tt
+	}
+	//TODO: Unsure about this. What if the type-expr has side effects?
+	if res, ok := Eval(e.t, env).(Type); ok {
+		return res
+	}
+	if tel, ok := e.t.(ExprList); ok {
+		tels := ExprListToSlice(tel)
+		//If the type is a function, it looks like ((ParametersType) => ReturnType)
+		if len(tels) == 3 {
+			if maybeArrow, ok := tels[1].(Symbol); ok && string(maybeArrow) == "=>" {	
+				return parseFuncType(tels, env)
+			}
+		}
+		ret := Type{"", false, true, []Type{}, nil}
+		var b bytes.Buffer
+		b.WriteString("(")
+		ret, s, ok := getSliceType(tels, ret, &env)
+		if !ok {
+			return env.findType(Symbol("Undefined"))
+		}
+		b.WriteString(s + ")")
+		ret.name = b.String()
+		return ret
+	}
+	return env.findType(Symbol("Undefined"))
+}
+
+func parseFuncType(el []Expr, env Environment) Type {
+	var b bytes.Buffer
+	b.WriteString("(")
+	ret := Type{"", true, false, []Type{}, nil}
+	if parTypeList, ok := el[0].(ExprList); !ok {
+		return env.findType(Symbol("Undefined"))
+	} else {
+		parTypeListType := ExprAndExpectedType{nil, parTypeList}.getType(env)
+		ret.parameters = parTypeListType.parameters
+		b.WriteString(parTypeListType.String() + " => ")
+	}
+	//This code isn't normal but on Go it is
+	retType := ExprAndExpectedType{nil, el[2]}.getType(env)
+	ret.returnType = &retType
+	b.WriteString(retType.String() + ")")
+	ret.name = b.String()
+	return ret
+}
+
+/*
+	getSliceType is used for retrieving the type of a Type-Expr when it is a list in ExprAndExpectedType.
+*/
+func getSliceType(typeExprSlice []Expr, ret Type, env *Environment) (Type, string, bool) {
+	var b bytes.Buffer
+	for i, expr := range typeExprSlice {
+		if es, ok := expr.(Symbol); ok {
+			t := env.findType(es)
+			ret.parameters = append(ret.parameters, t)
+			b.WriteString(t.String())
+		} else if el, ok := expr.(ExprList); ok {
+			b.WriteString("(")
+			listType := Type{"", false, true, []Type{}, nil}
+			listType, elString, ok := getSliceType(ExprListToSlice(el), listType, env)
+			if !ok {
+				return ret, "", false
+			}
+			ret.parameters = append(ret.parameters, listType)
+			b.WriteString(elString + ")")
+		} else {
+			return ret, "", false
+		}
+		if i != len(typeExprSlice)-1 {
+			b.WriteString(" ")
+		}
+	}
+	ret.name = b.String()
+	return ret, b.String(), true
 }
 
 /*
@@ -51,6 +262,9 @@ values right now. 64 bit float should be sufficiently accurate for large ints.
 */
 type Number float64
 
+func (n Number) getType(env Environment) Type {
+	return env.findType(Symbol("Number"))
+}
 func (n Number) isExpr() {}
 func unwrapNumber(n Expr) float64 {
 	return float64(n.(Number))
@@ -63,6 +277,9 @@ contain spaces...
 */
 type Symbol string
 
+func (s Symbol) getType(env Environment) Type {
+	return env.findType(Symbol("Symbol"))
+}
 func (s Symbol) isExpr() {}
 func unwrapSymbol(s Expr) string {
 	return string(s.(Symbol))
@@ -70,6 +287,9 @@ func unwrapSymbol(s Expr) string {
 
 type String string
 
+func (s String) getType(env Environment) Type {
+	return env.findType(Symbol("String"))
+}
 func (s String) isExpr() {}
 func (s String) String() string {
 	return "\"" + string(s) + "\""
@@ -77,6 +297,9 @@ func (s String) String() string {
 
 type Boolean bool
 
+func (b Boolean) getType(env Environment) Type {
+	return env.findType(Symbol("Boolean"))
+}
 func (b Boolean) isExpr() {}
 func (b Boolean) String() string {
 	if bool(b) {
@@ -87,6 +310,9 @@ func (b Boolean) String() string {
 
 type Byte byte
 
+func (b Byte) getType(env Environment) Type {
+	return env.findType(Symbol("Byte"))
+}
 func (b Byte) isExpr() {}
 func (b Byte) String() string {
 	return fmt.Sprintf("0x%x", byte(b))
@@ -94,6 +320,9 @@ func (b Byte) String() string {
 
 type Character rune
 
+func (c Character) getType(env Environment) Type {
+	return env.findType(Symbol("Character"))
+}
 func (c Character) isExpr() {}
 func (c Character) String() string {
 	return fmt.Sprintf("#\\%c", c)
@@ -156,10 +385,16 @@ func decodeCharacter(s string) Character {
 
 type Channel chan Expr
 
+func (c Channel) getType(env Environment) Type {
+	return env.findType(Symbol("Channel"))
+}
 func (c Channel) isExpr() {}
 
 type Complex complex128
 
+func (c Complex) getType(env Environment) Type {
+	return env.findType(Symbol("Complex"))
+}
 func (c Complex) isExpr() {}
 
 func complex_(e Environment, args ...Expr) Expr {
@@ -239,6 +474,34 @@ type ExprList struct {
 	cdr *ExprList
 }
 
+/*
+	Returns the type of a list. Unfortunately requires iterating through the whole list to get types of all elements.
+
+	TODO:
+	All ExprList operations could be optimized with a cached slice in each ExprList.
+*/
+func (el ExprList) getType(env Environment) Type {
+	ret := Type{"", false, true, []Type{}, nil}
+	var b bytes.Buffer
+	b.WriteString("(")
+	els := ExprListToSlice(el)
+	for i, expr := range els {
+		if et, ok := expr.(TypedExpr); ok {
+			t := et.getType(env)
+			ret.parameters = append(ret.parameters, t)
+			b.WriteString(t.String())
+		} else {
+			ret.parameters = append(ret.parameters, Type{"Undefined", false, false, []Type{}, nil})
+			b.WriteString("Undefined")
+		}
+		if i != len(els)-1 {
+			b.WriteString(" ")
+		}
+	}
+	b.WriteString(")")
+	ret.name = b.String()
+	return ret
+}
 func (el ExprList) isExpr() {}
 
 func (el ExprList) Length() int {
@@ -309,6 +572,9 @@ type Port struct {
 	w      *bufio.Writer
 }
 
+func (p Port) getType(env Environment) Type {
+	return env.findType(Symbol("Port"))
+}
 func (p Port) isExpr() {}
 
 type Func func(...Expr) Expr
@@ -341,6 +607,35 @@ type UserProc struct {
 	body        Expr
 }
 
+/*
+	TODO: Everything
+*/
+func (u UserProc) getType(env Environment) Type {
+	var b bytes.Buffer
+	b.WriteString("((")
+	parList := ExprListToSlice(u.params)
+	
+	parTypes := make([]Type, 0, len(parList))
+	for i := len(u.partialArgs); i < len(parList); i++ {
+		par := parList[i]
+		if part, ok := par.(ExprAndExpectedType); ok {
+			t := part.getType(env)
+			parTypes = append(parTypes, t)
+			b.WriteString(t.String())
+		} else {
+			b.WriteString("Undefined")
+			parTypes = append(parTypes, env.findType(Symbol("Undefined")))
+		}
+		if i != len(parList)-1 {
+			b.WriteString(" ")
+		}
+	}
+	//TODO:
+	b.WriteString(") => Undefined)")
+	retType := env.findType(Symbol("Undefined"))
+	ret := Type{b.String(), true, false, parTypes, &retType}
+	return ret
+}
 func (u UserProc) isExpr() {}
 
 func (u UserProc) String() string {
@@ -366,21 +661,82 @@ func (u UserProc) eval(e Environment, args ...Expr) Expr {
 	}
 	for i, par := range ExprListToSlice(u.params) {
 		isPartialArg := i < len(u.partialArgs)
+		part, isTyped := par.(ExprAndExpectedType)
+		var s string
+		if isTyped {
+			s = unwrapSymbol(part.e)
+		} else {
+			s = unwrapSymbol(par)
+		}
 		if i == u.params.Length()-1 && u.variadic {
 			if isPartialArg {
-				e.Local[unwrapSymbol(par)] = SliceToExprList(u.partialArgs[i:])
+				e.Local[s] = SliceToExprList(u.partialArgs[i:])
 			} else {
-				e.Local[unwrapSymbol(par)] = SliceToExprList(args[i-len(u.partialArgs):])
+				e.Local[s] = SliceToExprList(args[i-len(u.partialArgs):])
 			}
 		} else {
 			if isPartialArg {
-				e.Local[unwrapSymbol(par)] = u.partialArgs[i]
+				e.Local[s] = u.partialArgs[i]
 			} else {
-				e.Local[unwrapSymbol(par)] = args[i-len(u.partialArgs)]
+				e.Local[s] = args[i-len(u.partialArgs)]
+			}
+		}
+		if isTyped {
+			parameterType := part.getType(e)
+			if argt, ok := e.Local[s].(TypedExpr); ok {
+				argType := argt.getType(e)
+				if parameterType.name == "Undefined" {
+					//If the type name is "Undefined" we don't want to modify the type map
+					if parts, ok := part.t.(Symbol); ok && string(parts) != "Undefined" {
+						e.LocalTypes[parts] = argType.getType(e)
+					}
+				} else if parameterType.isList {
+					partel := part.t.(ExprList)
+					partels := ExprListToSlice(partel)
+					if !typedUserProcListParameter(partels, argType, &e) {
+						return Error{"Parameter " + s + " expected type " + part.getType(e).String() + ", have " + argType.String() + "."}
+					}
+				} else if !argType.isEqual(parameterType) {
+					return Error{"Parameter " + s + " expected type " + part.getType(e).String() + ", have " + argType.String() + "."}
+				}
+			} else {
+				return Error{"Parameter " + s + " expected type " + part.getType(e).String() + " but has no type."}
 			}
 		}
 	}
 	return Eval(u.body, e)
+}
+
+/*
+	typedUserProcListParameter is used to do type checking for UserProcs. This needed to be broken out of UserProc.eval for recursion purposes.
+*/
+func typedUserProcListParameter(parameterTypedExprSlice []Expr, argType Type, env *Environment) bool {
+	if !argType.isList || len(parameterTypedExprSlice) != len(argType.parameters) {
+		return false
+	}
+	ret := true
+	for i := range parameterTypedExprSlice {
+		if parSymbol, ok := parameterTypedExprSlice[i].(Symbol); ok {
+			newParType := env.findType(parSymbol)
+			if argType.parameters[i].isEqual(newParType) {
+				continue
+			}
+			if newParType.name == "Undefined" {
+				env.LocalTypes[parSymbol] = argType.parameters[i]
+				continue
+			}
+			ret = false
+		} else if parExprList, ok := parameterTypedExprSlice[i].(ExprList); ok {
+			if !typedUserProcListParameter(ExprListToSlice(parExprList), argType.parameters[i], env) {
+				ret = false
+			}
+		} else {
+			ret = false
+		}
+	}
+	//We want to wait with returning so that the whole list can become as defined as possible.
+	//Otherwise some types will be listed as undefined even though they would be defined if the loop continued.
+	return ret
 }
 
 type BuiltIn struct {
@@ -420,7 +776,10 @@ type Error struct {
 }
 
 func (e Error) Error() string { return e.s }
-func (e Error) isExpr()       {}
+func (e Error) getType(env Environment) Type {
+	return env.findType(Symbol("Error"))
+}
+func (e Error) isExpr() {}
 
 // type Pattern []Expr
 
@@ -602,6 +961,9 @@ type SyntaxRule struct {
 	keywords map[Symbol]bool
 }
 
+func (s SyntaxRule) getType(env Environment) Type {
+	return env.findType(Symbol("SyntaxRule"))
+}
 func (s SyntaxRule) isExpr() {}
 func (s SyntaxRule) transform(el []Expr) Expr {
 	for i, p := range s.patterns {
